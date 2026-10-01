@@ -42,7 +42,12 @@ A link like `https://tectivejk.github.io/Updating-hardware/?item=refly-sf-010` o
 | File | Purpose |
 | --- | --- |
 | `index.html` | Phone page (search, update, add) |
+| `manifest.webmanifest` | Add to home screen |
+| `icon.svg` | App icon |
 | `.github/workflows/pages.yml` | Publishes the live GitHub Pages site |
+| `.gitlab-ci.yml` | Optional GitLab Pages job |
+
+The live app does not use Google Sheets. Saves stay on the phone.
 
 ## Remotes
 
