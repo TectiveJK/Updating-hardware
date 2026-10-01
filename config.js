@@ -1,4 +1,3 @@
 window.HARDWARE_CONFIG = {
-  // After you deploy the Apps Script web app, paste the URL that ends in /exec
-  scriptUrl: 'PASTE_YOUR_WEB_APP_URL_HERE'
+  scriptUrl: 'https://script.google.com/macros/s/AKfycbz3KiLyly5nRN7-y9iyJvL-z6xLpJKtNH02faJ4NeH1j0BvYUhlbvUVOXqckLtIIGqcuw/exec'
 };

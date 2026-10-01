@@ -8,6 +8,8 @@ That site stays online. Open it on a phone, or add it to the home screen.
 
 When someone changes a location, other phones pick it up from the company Google Sheet (about every 15 seconds, or when they reopen the page).
 
+The shared list is connected.
+
 ## What people can do
 
 - Search drones, batteries, hive, and rotators
