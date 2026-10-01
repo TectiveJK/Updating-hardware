@@ -2,9 +2,9 @@
 
 Phone page for Tective. Anyone can add hardware and update where it is. **Everyone sees the same list.**
 
-**Share this link:** https://tectivejk.github.io/Updating-hardware/
+**Always-live link (share this):** https://tectivejk.github.io/Updating-hardware/
 
-The site stays online. Open it on a phone, or add it to the home screen.
+This URL stays online. It does not go down when you close your laptop. Open it on a phone, or add it to the home screen.
 
 When someone changes a location, other phones show it from the company Google Sheet (within about 15 seconds, or when they reopen the page).
 
@@ -82,6 +82,6 @@ The Apps Script web app URL is stored in [`config.js`](config.js).
 
 ## Remotes
 
-- **Live site:** https://tectivejk.github.io/Updating-hardware/
+- **Always-live site:** https://tectivejk.github.io/Updating-hardware/
 - **GitHub:** https://github.com/TectiveJK/Updating-hardware
 - **GitLab:** https://git.tective.nl/JohnKokotinis/Updating-hardware.git
