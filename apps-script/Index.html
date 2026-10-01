@@ -129,9 +129,14 @@
     }
     textarea { min-height: 72px; resize: vertical; }
     .toast {
-      position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom));
+      position: fixed; left: 16px; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom));
       background: #123; border: 1px solid var(--accent); color: var(--text);
       padding: 12px 14px; border-radius: 12px; z-index: 20; text-align: center;
+    }
+    .add-btn {
+      position: fixed; left: 16px; right: 16px;
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      z-index: 6;
     }
     .err { color: var(--danger); font-size: 14px; min-height: 1.2em; }
     .type { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
@@ -221,10 +226,36 @@
       return !inAppsScript() && !scriptUrl();
     }
 
+    function classify(name) {
+      const n = String(name || '').toLowerCase();
+      if (n.indexOf('battery') !== -1) return 'battery';
+      if (n.indexOf('rotator') !== -1) return 'rotator';
+      if (n.indexOf('hive') !== -1 || n.indexOf('skyfence') !== -1) return 'hive';
+      if (n.indexOf('refly') !== -1 || n.indexOf('drone') !== -1 || n.indexOf('ibb') !== -1) return 'drone';
+      return 'other';
+    }
+
     function callApi(action, params) {
       if (useDemo()) {
         state.demo = true;
         if (action === 'list') return Promise.resolve({ ok: true, items: DEMO_ITEMS.slice() });
+        if (action === 'add') {
+          const name = String(params.item || '').trim();
+          if (!name) return Promise.resolve({ ok: false, error: 'Type a hardware name.' });
+          if (DEMO_ITEMS.some((it) => it.name.toLowerCase() === name.toLowerCase())) {
+            return Promise.resolve({ ok: false, error: name + ' is already on the list.' });
+          }
+          const item = {
+            name: name,
+            location: params.location,
+            person: params.person || '',
+            note: params.note || '',
+            gimbal: '',
+            type: classify(name)
+          };
+          DEMO_ITEMS.push(item);
+          return Promise.resolve({ ok: true, item: Object.assign({}, item) });
+        }
         const item = DEMO_ITEMS.find((it) => it.name.toLowerCase() === String(params.item).toLowerCase());
         if (!item) return Promise.resolve({ ok: false, error: 'Item not found.' });
         item.location = params.location;
@@ -237,6 +268,7 @@
         return new Promise((resolve, reject) => {
           const run = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
           if (action === 'list') run.listItems();
+          else if (action === 'add') run.addItem(params);
           else run.updateItem(params);
         });
       }
@@ -310,6 +342,21 @@
       }
     }
 
+    function openAdd() {
+      state.selected = {
+        isNew: true,
+        name: '',
+        location: '',
+        person: state.name || '',
+        note: '',
+        gimbal: '',
+        type: 'other'
+      };
+      state.customLocation = '';
+      state.error = '';
+      render();
+    }
+
     function openEditor(item) {
       state.selected = Object.assign({}, item);
       state.customLocation = LOCATIONS.indexOf(item.location) === -1 ? item.location : '';
@@ -325,14 +372,27 @@
     async function save() {
       const item = state.selected;
       if (!item) return;
+      const nameEl = document.querySelector('input[placeholder^="e.g."]');
+      const personEl = document.querySelector('input[placeholder="Your name"]');
+      const noteEl = document.querySelector('textarea[placeholder="Optional note"]');
+      const otherEl = document.querySelector('input[placeholder="Other location"]');
+      if (nameEl) item.name = nameEl.value;
+      if (personEl) item.person = personEl.value;
+      if (noteEl) item.note = noteEl.value;
+      if (otherEl && otherEl.value.trim() && LOCATIONS.indexOf(item.location) === -1) {
+        item.location = otherEl.value.trim();
+      }
+      const hardwareName = (item.name || '').trim();
+      if (!hardwareName) { state.error = 'Type a hardware name.'; render(); return; }
       const location = (item.location || '').trim();
       if (!location) { state.error = 'Choose a location.'; render(); return; }
       state.loading = true;
       state.error = '';
       render();
       try {
-        const res = await callApi('update', {
-          item: item.name,
+        const adding = !!item.isNew;
+        const res = await callApi(adding ? 'add' : 'update', {
+          item: hardwareName,
           location: location,
           person: item.person || '',
           note: item.note || ''
@@ -340,10 +400,12 @@
         if (!res || res.ok === false) throw new Error((res && res.error) || 'Save failed.');
         localStorage.setItem('hw_name', item.person || '');
         state.name = item.person || '';
-        const idx = state.items.findIndex((it) => it.name === item.name);
-        if (idx !== -1) state.items[idx] = Object.assign({}, state.items[idx], res.item || item);
+        const saved = Object.assign({ isNew: false }, res.item || item, { name: hardwareName });
+        const idx = state.items.findIndex((it) => it.name.toLowerCase() === hardwareName.toLowerCase());
+        if (idx !== -1) state.items[idx] = saved;
+        else state.items.unshift(saved);
         state.selected = null;
-        toast('Updated ' + item.name);
+        toast(adding ? 'Added ' + hardwareName : 'Updated ' + hardwareName);
       } catch (err) {
         state.error = err.message || String(err);
       } finally {
@@ -389,12 +451,28 @@
               $('span', { text: it.person ? ' · ' + it.person : '' })
             ])
           ])
-        ) : [$('div', { class: 'empty', text: 'No matching hardware.' })])
+        ) : [$('div', { class: 'empty', text: 'No matching hardware.' })]),
+        $('button', {
+          class: 'btn add-btn',
+          type: 'button',
+          on: { click: openAdd }
+        }, [$('span', { text: 'Add hardware' })])
       ]);
     }
 
     function renderEditor() {
       const item = state.selected;
+      const adding = !!item.isNew;
+      const nameInput = $('input', {
+        class: 'box',
+        placeholder: 'e.g. refly-sf-034 or battery 121',
+        value: item.name || '',
+        autocapitalize: 'off'
+      });
+      nameInput.addEventListener('input', () => {
+        item.name = nameInput.value;
+        item.type = classify(item.name);
+      });
       const person = $('input', { class: 'box', placeholder: 'Your name', value: item.person || '' });
       person.addEventListener('input', () => { item.person = person.value; });
       const note = $('textarea', { placeholder: 'Optional note' });
@@ -410,9 +488,14 @@
       return $('div', { class: 'sheet', on: { click: (e) => { if (e.target.classList.contains('sheet')) closeEditor(); } } }, [
         $('div', { class: 'panel' }, [
           $('div', { class: 'grab' }),
-          $('div', { class: 'type', text: item.type }),
-          $('h2', { style: 'margin:4px 0 6px', text: item.name }),
-          item.gimbal ? $('div', { class: 'sub', text: 'Gimbal: ' + item.gimbal }) : null,
+          $('div', { class: 'type', text: adding ? 'New' : item.type }),
+          adding
+            ? $('div', { class: 'field' }, [
+                $('label', { text: 'Hardware name' }),
+                nameInput
+              ])
+            : $('h2', { style: 'margin:4px 0 6px', text: item.name }),
+          !adding && item.gimbal ? $('div', { class: 'sub', text: 'Gimbal: ' + item.gimbal }) : null,
           $('div', { class: 'field' }, [
             $('label', { text: 'Location' }),
             $('div', { class: 'locs' }, LOCATIONS.map((loc) =>
@@ -440,7 +523,7 @@
             class: 'btn',
             disabled: state.loading,
             on: { click: save }
-          }, [$('span', { text: state.loading ? 'Saving…' : 'Save location' })]),
+          }, [$('span', { text: state.loading ? 'Saving…' : (adding ? 'Add hardware' : 'Save location') })]),
           $('div', { style: 'height:8px' }),
           $('button', { class: 'btn secondary', on: { click: closeEditor } }, [$('span', { text: 'Cancel' })])
         ])

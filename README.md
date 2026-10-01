@@ -13,8 +13,8 @@ Until the Google Sheet is connected (see below), the page runs in **demo mode**.
 ## Use it (everyone)
 
 1. Open https://tectivejk.github.io/Updating-hardware/
-2. Search for a drone, battery, hive, or rotator.
-3. Tap it, choose a location, type your name, Save.
+2. Search for a drone, battery, hive, or rotator — or tap **Add hardware** to create a new one.
+3. Choose a location, type your name, Save.
 
 ### Add to a phone home screen
 
@@ -47,7 +47,7 @@ The script only reads and writes **Product Status** columns:
 | E | Person responsible |
 | F | Note |
 
-Each save also appends a row to a hidden **Location Log** tab (who moved what, and when).
+Each save also appends a row to a hidden **Location Log** tab (who moved what, and when). New hardware is added as a new row on **Product Status**.
 
 Placeholder rows such as `battery - (004)` are hidden in the app.
 

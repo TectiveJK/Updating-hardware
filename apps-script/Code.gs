@@ -89,11 +89,65 @@ function updateItem(payload) {
   }
 }
 
+function addItem(payload) {
+  payload = payload || {};
+  const name = String(payload.item || payload.name || '').trim();
+  if (!name) return { ok: false, error: 'Type a hardware name.' };
+  if (isPlaceholder_(name)) return { ok: false, error: 'Use a real name, not a placeholder.' };
+
+  const location = String(payload.location || '').trim();
+  if (!location) return { ok: false, error: 'Choose a location.' };
+
+  const person = String(payload.person || '').trim();
+  const note = String(payload.note || '').trim().slice(0, 500);
+
+  const lock = LockService.getDocumentLock();
+  lock.waitLock(15000);
+  try {
+    const sheet = statusSheet();
+    if (findRow(sheet, name)) return { ok: false, error: name + ' is already on the list.' };
+
+    sheet.appendRow(['', name, location, '', person, note]);
+
+    appendLog_({
+      item: name,
+      oldLocation: '',
+      newLocation: location,
+      oldPerson: '',
+      person: person,
+      oldNote: '',
+      note: note
+    });
+
+    return {
+      ok: true,
+      item: {
+        name: name,
+        location: location,
+        person: person,
+        note: note,
+        gimbal: '',
+        type: classify_(name)
+      }
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function handleAction(p) {
   try {
     if (p.action === 'list') return listItems();
     if (p.action === 'update') {
       return updateItem({
+        item: p.item,
+        location: p.location,
+        person: p.person,
+        note: p.note
+      });
+    }
+    if (p.action === 'add') {
+      return addItem({
         item: p.item,
         location: p.location,
         person: p.person,
