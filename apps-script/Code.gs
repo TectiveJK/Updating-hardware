@@ -8,7 +8,6 @@
  * Then paste the /exec URL into ../config.js
  */
 
-const ACCESS_PIN = 'tective'; // change this before you share the app
 const STATUS_SHEET = 'Product Status';
 const LOG_SHEET = 'Location Log';
 const DATA_START_ROW = 5;
@@ -34,13 +33,11 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-function listItems(pin) {
-  assertPin(pin);
+function listItems() {
   return { ok: true, items: readItems() };
 }
 
-function updateItem(pin, payload) {
-  assertPin(pin);
+function updateItem(payload) {
   payload = payload || {};
   const name = String(payload.item || payload.name || '').trim();
   if (!name) return { ok: false, error: 'Pick an item first.' };
@@ -94,9 +91,9 @@ function updateItem(pin, payload) {
 
 function handleAction(p) {
   try {
-    if (p.action === 'list') return listItems(p.pin);
+    if (p.action === 'list') return listItems();
     if (p.action === 'update') {
-      return updateItem(p.pin, {
+      return updateItem({
         item: p.item,
         location: p.location,
         person: p.person,
@@ -106,18 +103,6 @@ function handleAction(p) {
     return { ok: false, error: 'Unknown action.' };
   } catch (err) {
     return { ok: false, error: String(err && err.message ? err.message : err) };
-  }
-}
-
-function assertPin(pin) {
-  const expected = String(
-    PropertiesService.getScriptProperties().getProperty('PIN') || ACCESS_PIN
-  );
-  if (!expected || expected === 'CHANGE_ME') {
-    throw new Error('Set ACCESS_PIN in Code.gs (or a PIN script property) before using the app.');
-  }
-  if (String(pin || '') !== expected) {
-    throw new Error('Wrong PIN.');
   }
 }
 

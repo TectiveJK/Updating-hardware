@@ -182,7 +182,6 @@
     ];
 
     const state = {
-      pin: sessionStorage.getItem('hw_pin') || '',
       name: localStorage.getItem('hw_name') || '',
       items: [],
       query: '',
@@ -237,8 +236,8 @@
       if (inAppsScript()) {
         return new Promise((resolve, reject) => {
           const run = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
-          if (action === 'list') run.listItems(params.pin);
-          else run.updateItem(params.pin, params);
+          if (action === 'list') run.listItems();
+          else run.updateItem(params);
         });
       }
 
@@ -248,9 +247,9 @@
     function jsonp(action, params) {
       return new Promise((resolve, reject) => {
         const cb = 'hwcb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-        const qs = new URLSearchParams({ action: action, callback: cb, pin: params.pin || '' });
+        const qs = new URLSearchParams({ action: action, callback: cb });
         Object.keys(params).forEach((k) => {
-          if (k !== 'pin' && params[k] != null) qs.set(k, params[k]);
+          if (params[k] != null) qs.set(k, params[k]);
         });
         const s = document.createElement('script');
         const timer = setTimeout(() => {
@@ -294,7 +293,7 @@
       state.error = '';
       render();
       try {
-        const res = await callApi('list', { pin: state.pin });
+        const res = await callApi('list', {});
         if (!res || res.ok === false) throw new Error((res && res.error) || 'Could not load items.');
         state.items = res.items || [];
         state.demo = useDemo();
@@ -305,10 +304,6 @@
         }
       } catch (err) {
         state.error = err.message || String(err);
-        if (/wrong pin/i.test(state.error)) {
-          sessionStorage.removeItem('hw_pin');
-          state.pin = '';
-        }
       } finally {
         state.loading = false;
         render();
@@ -337,7 +332,6 @@
       render();
       try {
         const res = await callApi('update', {
-          pin: state.pin,
           item: item.name,
           location: location,
           person: item.person || '',
@@ -356,28 +350,6 @@
         state.loading = false;
         render();
       }
-    }
-
-    function renderGate() {
-      const pinInput = $('input', {
-        class: 'search', type: 'password',
-        placeholder: 'Company PIN', value: state.pin, autocomplete: 'off'
-      });
-      pinInput.addEventListener('input', () => { state.pin = pinInput.value; });
-      pinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') unlock(); });
-      function unlock() {
-        state.pin = pinInput.value.trim();
-        if (!state.pin) { state.error = 'Enter the PIN.'; render(); return; }
-        sessionStorage.setItem('hw_pin', state.pin);
-        loadItems();
-      }
-      return $('div', { class: 'gate' }, [
-        $('h1', { text: 'Hardware' }),
-        $('p', { class: 'sub', text: 'Update where a drone, battery, hive or rotator is.' }),
-        $('div', { class: 'field' }, [pinInput]),
-        $('p', { class: 'err', text: state.error }),
-        $('button', { class: 'btn', on: { click: unlock } }, [$('span', { text: 'Continue' })])
-      ]);
     }
 
     function renderList() {
@@ -485,16 +457,12 @@
     function render() {
       const root = document.getElementById('app');
       root.replaceChildren();
-      if (!state.pin) root.appendChild(renderGate());
-      else {
-        root.appendChild(renderList());
-        if (state.selected) root.appendChild(renderEditor());
-      }
+      root.appendChild(renderList());
+      if (state.selected) root.appendChild(renderEditor());
       if (state.toast) root.appendChild($('div', { class: 'toast', text: state.toast }));
     }
 
-    if (state.pin) loadItems();
-    else render();
+    loadItems();
   </script>
 </body>
 </html>
