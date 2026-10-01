@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0e1a24">
+  <title>Hardware</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <style>
+    :root {
+      --bg: #0e1a24;
+      --bg-2: #162636;
+      --card: #1c3347;
+      --line: #2b4a63;
+      --text: #f3f7fb;
+      --muted: #9db0c0;
+      --accent: #3ecf8e;
+      --accent-2: #2bb673;
+      --warn: #f0b429;
+      --danger: #ef6b6b;
+      --tap: 48px;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    button, input, textarea, select { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    .screen { min-height: 100dvh; display: flex; flex-direction: column; }
+    header.app {
+      position: sticky; top: 0; z-index: 5;
+      background: linear-gradient(#0e1a24, #0e1a24ee);
+      padding: 14px 16px 10px;
+    }
+    header.app h1 { margin: 0 0 4px; font-size: 22px; }
+    .sub { color: var(--muted); font-size: 13px; }
+    .banner {
+      margin: 0 16px 10px;
+      padding: 10px 12px;
+      background: #3a3318;
+      color: #ffe9a8;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+    .search {
+      width: 100%;
+      min-height: var(--tap);
+      border: 1px solid var(--line);
+      background: var(--bg-2);
+      border-radius: 12px;
+      padding: 0 14px;
+      outline: none;
+    }
+    .filters {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px 16px 4px;
+      scrollbar-width: none;
+    }
+    .filters::-webkit-scrollbar { display: none; }
+    .chip {
+      flex: 0 0 auto;
+      min-height: 36px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--bg-2);
+    }
+    .chip.on { background: var(--accent); border-color: var(--accent); color: #062016; font-weight: 700; }
+    .list { padding: 8px 12px 96px; display: flex; flex-direction: column; gap: 8px; }
+    .item {
+      display: flex; flex-direction: column; align-items: flex-start; text-align: left;
+      width: 100%; min-height: 64px;
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 12px 14px;
+    }
+    .item b { font-size: 16px; }
+    .meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
+    .loc { color: var(--accent); font-weight: 600; }
+    .empty { text-align: center; color: var(--muted); padding: 40px 16px; }
+    .gate {
+      flex: 1; display: flex; flex-direction: column; justify-content: center;
+      padding: 24px 20px 40px; max-width: 420px; width: 100%; margin: 0 auto;
+    }
+    .gate h1 { font-size: 28px; margin: 0 0 8px; }
+    .btn {
+      min-height: var(--tap);
+      border: 0; border-radius: 12px;
+      background: var(--accent); color: #062016; font-weight: 700;
+      padding: 0 16px; width: 100%;
+    }
+    .btn.secondary { background: var(--bg-2); color: var(--text); border: 1px solid var(--line); }
+    .btn:disabled { opacity: 0.55; }
+    .field { margin: 12px 0; }
+    .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .sheet {
+      position: fixed; inset: 0; background: #0008; z-index: 10;
+      display: flex; align-items: flex-end;
+    }
+    .sheet .panel {
+      width: 100%; max-height: 92dvh; overflow: auto;
+      background: var(--bg-2);
+      border-radius: 20px 20px 0 0;
+      padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    }
+    .grab { width: 42px; height: 4px; background: var(--line); border-radius: 4px; margin: 0 auto 12px; }
+    .locs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .loc-btn {
+      min-height: 52px; border-radius: 12px;
+      border: 1px solid var(--line); background: var(--card);
+    }
+    .loc-btn.on { border-color: var(--accent); background: #16382c; color: var(--accent); font-weight: 700; }
+    textarea, input.box {
+      width: 100%; border: 1px solid var(--line); background: var(--bg);
+      border-radius: 12px; padding: 12px; outline: none;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+    .toast {
+      position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom));
+      background: #123; border: 1px solid var(--accent); color: var(--text);
+      padding: 12px 14px; border-radius: 12px; z-index: 20; text-align: center;
+    }
+    .err { color: var(--danger); font-size: 14px; min-height: 1.2em; }
+    .type { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div id="app" class="screen"></div>
+  <script src="config.js"></script>
+  <script>
+    const LOCATIONS = [
+      'In factory downstairs',
+      'In office upstairs',
+      'In hive',
+      'testing',
+      'Out of service'
+    ];
+    const FILTERS = [
+      { id: 'all', label: 'All' },
+      { id: 'drone', label: 'Drones' },
+      { id: 'battery', label: 'Batteries' },
+      { id: 'hive', label: 'Hive' },
+      { id: 'rotator', label: 'Rotator' }
+    ];
+    const DEMO_ITEMS = [
+      { name: 'refly-ibb-010', location: 'In factory downstairs', person: '', note: '', gimbal: 'On Drone', type: 'drone' },
+      { name: 'refly-ibb-015', location: 'In factory downstairs', person: '', note: '', gimbal: 'On Drone', type: 'drone' },
+      { name: 'refly-ibb-007', location: 'testing', person: '', note: '', gimbal: 'On Drone', type: 'drone' },
+      { name: 'skyhive-sf-004', location: 'In factory downstairs', person: '', note: 'Small problem with the z-arm/battery gripper', gimbal: '', type: 'hive' },
+      { name: 'refly-sf-007', location: 'testing', person: '', note: 'Slow GPS, keep an eye out for this', gimbal: 'Removed', type: 'drone' },
+      { name: 'refly-sf-010', location: 'testing', person: '', note: 'Gimbal pitch stop needs to be replaced', gimbal: 'On Drone', type: 'drone' },
+      { name: 'refly-sf-031', location: 'In office upstairs', person: '', note: 'Location not determined', gimbal: 'On Drone', type: 'drone' },
+      { name: 'refly-sf-032', location: 'testing', person: '', note: 'USED FOR BATTERY PORT TESTING', gimbal: 'Removed', type: 'drone' },
+      { name: 'refly-sf-033', location: 'In office upstairs', person: '', note: '', gimbal: 'On Drone', type: 'drone' },
+      { name: 'battery 96 (004)', location: 'testing', person: '', note: '', gimbal: '', type: 'battery' },
+      { name: 'battery 63 (004)', location: 'In hive', person: '', note: '', gimbal: '', type: 'battery' },
+      { name: 'battery 3 (004)', location: 'testing', person: '', note: '', gimbal: '', type: 'battery' },
+      { name: 'battery 39 (004)', location: 'testing', person: '', note: '', gimbal: '', type: 'battery' },
+      { name: 'battery 99 (004)', location: 'In hive', person: '', note: '', gimbal: '', type: 'battery' },
+      { name: 'battery 97 (004)', location: 'In factory downstairs', person: '', note: '', gimbal: '', type: 'battery' },
+      { name: 'battery 118', location: 'In factory downstairs', person: '', note: '', gimbal: '', type: 'battery' },
+      { name: 'battery 82', location: 'In factory downstairs', person: '', note: '', gimbal: '', type: 'battery' },
+      { name: 'battery 93', location: 'Out of service', person: '', note: '', gimbal: '', type: 'battery' },
+      { name: 'battery 86', location: 'In factory downstairs', person: '', note: '', gimbal: '', type: 'battery' },
+      { name: 'battery 43', location: 'testing', person: '', note: 'Battery port flight testing with drone 32', gimbal: '', type: 'battery' },
+      { name: 'battery 17', location: 'Out of service', person: '', note: '', gimbal: '', type: 'battery' },
+      { name: 'battery 62', location: 'In factory downstairs', person: '', note: '', gimbal: '', type: 'battery' },
+      { name: 'rotator 25', location: 'In factory downstairs', person: '', note: 'without dish and antenna cone', gimbal: '', type: 'rotator' }
+    ];
+
+    const state = {
+      pin: sessionStorage.getItem('hw_pin') || '',
+      name: localStorage.getItem('hw_name') || '',
+      items: [],
+      query: '',
+      filter: 'all',
+      selected: null,
+      customLocation: '',
+      error: '',
+      loading: false,
+      demo: false,
+      toast: ''
+    };
+
+    function $(tag, attrs, kids) {
+      const n = document.createElement(tag);
+      Object.entries(attrs || {}).forEach(([k, v]) => {
+        if (k === 'class') n.className = v;
+        else if (k === 'on') Object.entries(v).forEach(([ev, fn]) => n.addEventListener(ev, fn));
+        else if (k === 'text') n.textContent = v;
+        else if (v === true) n.setAttribute(k, '');
+        else if (v !== false && v != null) n.setAttribute(k, v);
+      });
+      (kids || []).forEach((c) => { if (c) n.appendChild(c); });
+      return n;
+    }
+
+    function scriptUrl() {
+      const url = (window.HARDWARE_CONFIG && window.HARDWARE_CONFIG.scriptUrl) || '';
+      if (!url || url.indexOf('PASTE_') !== -1) return '';
+      return url;
+    }
+
+    function inAppsScript() {
+      return !!(window.google && google.script && google.script.run);
+    }
+
+    function useDemo() {
+      return !inAppsScript() && !scriptUrl();
+    }
+
+    function callApi(action, params) {
+      if (useDemo()) {
+        state.demo = true;
+        if (action === 'list') return Promise.resolve({ ok: true, items: DEMO_ITEMS.slice() });
+        const item = DEMO_ITEMS.find((it) => it.name.toLowerCase() === String(params.item).toLowerCase());
+        if (!item) return Promise.resolve({ ok: false, error: 'Item not found.' });
+        item.location = params.location;
+        item.person = params.person;
+        item.note = params.note;
+        return Promise.resolve({ ok: true, item: Object.assign({}, item) });
+      }
+
+      if (inAppsScript()) {
+        return new Promise((resolve, reject) => {
+          const run = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+          if (action === 'list') run.listItems(params.pin);
+          else run.updateItem(params.pin, params);
+        });
+      }
+
+      return jsonp(action, params);
+    }
+
+    function jsonp(action, params) {
+      return new Promise((resolve, reject) => {
+        const cb = 'hwcb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        const qs = new URLSearchParams({ action: action, callback: cb, pin: params.pin || '' });
+        Object.keys(params).forEach((k) => {
+          if (k !== 'pin' && params[k] != null) qs.set(k, params[k]);
+        });
+        const s = document.createElement('script');
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('Timed out talking to the spreadsheet.'));
+        }, 20000);
+        function cleanup() {
+          clearTimeout(timer);
+          delete window[cb];
+          s.remove();
+        }
+        window[cb] = (data) => { cleanup(); resolve(data); };
+        s.onerror = () => { cleanup(); reject(new Error('Could not reach the spreadsheet.')); };
+        s.src = scriptUrl() + (scriptUrl().indexOf('?') === -1 ? '?' : '&') + qs.toString();
+        document.body.appendChild(s);
+      });
+    }
+
+    function wantedItem() {
+      const q = new URLSearchParams(location.search).get('item');
+      return q ? q.trim() : '';
+    }
+
+    function filtered() {
+      const q = state.query.trim().toLowerCase();
+      return state.items.filter((it) => {
+        if (state.filter !== 'all' && it.type !== state.filter) return false;
+        if (!q) return true;
+        return [it.name, it.location, it.person, it.note].join(' ').toLowerCase().indexOf(q) !== -1;
+      });
+    }
+
+    function toast(msg) {
+      state.toast = msg;
+      render();
+      setTimeout(() => { if (state.toast === msg) { state.toast = ''; render(); } }, 2200);
+    }
+
+    async function loadItems(openName) {
+      state.loading = true;
+      state.error = '';
+      render();
+      try {
+        const res = await callApi('list', { pin: state.pin });
+        if (!res || res.ok === false) throw new Error((res && res.error) || 'Could not load items.');
+        state.items = res.items || [];
+        state.demo = useDemo();
+        const target = openName || wantedItem();
+        if (target) {
+          const found = state.items.find((it) => it.name.toLowerCase() === target.toLowerCase());
+          if (found) openEditor(found);
+        }
+      } catch (err) {
+        state.error = err.message || String(err);
+        if (/wrong pin/i.test(state.error)) {
+          sessionStorage.removeItem('hw_pin');
+          state.pin = '';
+        }
+      } finally {
+        state.loading = false;
+        render();
+      }
+    }
+
+    function openEditor(item) {
+      state.selected = Object.assign({}, item);
+      state.customLocation = LOCATIONS.indexOf(item.location) === -1 ? item.location : '';
+      if (!state.selected.person && state.name) state.selected.person = state.name;
+      render();
+    }
+
+    function closeEditor() {
+      state.selected = null;
+      render();
+    }
+
+    async function save() {
+      const item = state.selected;
+      if (!item) return;
+      const location = (item.location || '').trim();
+      if (!location) { state.error = 'Choose a location.'; render(); return; }
+      state.loading = true;
+      state.error = '';
+      render();
+      try {
+        const res = await callApi('update', {
+          pin: state.pin,
+          item: item.name,
+          location: location,
+          person: item.person || '',
+          note: item.note || ''
+        });
+        if (!res || res.ok === false) throw new Error((res && res.error) || 'Save failed.');
+        localStorage.setItem('hw_name', item.person || '');
+        state.name = item.person || '';
+        const idx = state.items.findIndex((it) => it.name === item.name);
+        if (idx !== -1) state.items[idx] = Object.assign({}, state.items[idx], res.item || item);
+        state.selected = null;
+        toast('Updated ' + item.name);
+      } catch (err) {
+        state.error = err.message || String(err);
+      } finally {
+        state.loading = false;
+        render();
+      }
+    }
+
+    function renderGate() {
+      const pinInput = $('input', {
+        class: 'search', type: 'password',
+        placeholder: 'Company PIN', value: state.pin, autocomplete: 'off'
+      });
+      pinInput.addEventListener('input', () => { state.pin = pinInput.value; });
+      pinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') unlock(); });
+      function unlock() {
+        state.pin = pinInput.value.trim();
+        if (!state.pin) { state.error = 'Enter the PIN.'; render(); return; }
+        sessionStorage.setItem('hw_pin', state.pin);
+        loadItems();
+      }
+      return $('div', { class: 'gate' }, [
+        $('h1', { text: 'Hardware' }),
+        $('p', { class: 'sub', text: 'Update where a drone, battery, hive or rotator is.' }),
+        $('div', { class: 'field' }, [pinInput]),
+        $('p', { class: 'err', text: state.error }),
+        $('button', { class: 'btn', on: { click: unlock } }, [$('span', { text: 'Continue' })])
+      ]);
+    }
+
+    function renderList() {
+      const search = $('input', {
+        class: 'search', type: 'search', placeholder: 'Search hardware…',
+        value: state.query, enterkeyhint: 'search'
+      });
+      search.addEventListener('input', () => {
+        state.query = search.value;
+        const start = search.selectionStart;
+        render();
+        const next = document.querySelector('input[type="search"]');
+        if (next) { next.focus(); next.setSelectionRange(start, start); }
+      });
+
+      const items = filtered();
+      return $('div', { class: 'screen' }, [
+        $('header', { class: 'app' }, [
+          $('h1', { text: 'Hardware' }),
+          $('div', { class: 'sub', text: state.loading ? 'Loading…' : items.length + ' items' }),
+          $('div', { class: 'field' }, [search])
+        ]),
+        state.demo ? $('div', { class: 'banner', text: 'Demo mode. Connect the Google Sheet (see README) to save for real.' }) : null,
+        state.error ? $('div', { class: 'banner', text: state.error }) : null,
+        $('div', { class: 'filters' }, FILTERS.map((f) =>
+          $('button', {
+            class: 'chip' + (state.filter === f.id ? ' on' : ''),
+            on: { click: () => { state.filter = f.id; render(); } }
+          }, [$('span', { text: f.label })])
+        )),
+        $('div', { class: 'list' }, items.length ? items.map((it) =>
+          $('button', { class: 'item', on: { click: () => openEditor(it) } }, [
+            $('div', { class: 'type', text: it.type }),
+            $('b', { text: it.name }),
+            $('div', { class: 'meta' }, [
+              $('span', { class: 'loc', text: it.location || 'No location' }),
+              $('span', { text: it.person ? ' · ' + it.person : '' })
+            ])
+          ])
+        ) : [$('div', { class: 'empty', text: 'No matching hardware.' })])
+      ]);
+    }
+
+    function renderEditor() {
+      const item = state.selected;
+      const person = $('input', { class: 'box', placeholder: 'Your name', value: item.person || '' });
+      person.addEventListener('input', () => { item.person = person.value; });
+      const note = $('textarea', { placeholder: 'Optional note' });
+      note.value = item.note || '';
+      note.addEventListener('input', () => { item.note = note.value; });
+      const other = $('input', { class: 'box', placeholder: 'Other location', value: state.customLocation });
+      other.addEventListener('input', () => {
+        state.customLocation = other.value;
+        item.location = other.value;
+        renderKeepFocus(other);
+      });
+
+      return $('div', { class: 'sheet', on: { click: (e) => { if (e.target.classList.contains('sheet')) closeEditor(); } } }, [
+        $('div', { class: 'panel' }, [
+          $('div', { class: 'grab' }),
+          $('div', { class: 'type', text: item.type }),
+          $('h2', { style: 'margin:4px 0 6px', text: item.name }),
+          item.gimbal ? $('div', { class: 'sub', text: 'Gimbal: ' + item.gimbal }) : null,
+          $('div', { class: 'field' }, [
+            $('label', { text: 'Location' }),
+            $('div', { class: 'locs' }, LOCATIONS.map((loc) =>
+              $('button', {
+                class: 'loc-btn' + (item.location === loc ? ' on' : ''),
+                type: 'button',
+                on: { click: () => { item.location = loc; state.customLocation = ''; render(); } }
+              }, [$('span', { text: loc })])
+            ))
+          ]),
+          $('div', { class: 'field' }, [
+            $('label', { text: 'Other' }),
+            other
+          ]),
+          $('div', { class: 'field' }, [
+            $('label', { text: 'Who has it' }),
+            person
+          ]),
+          $('div', { class: 'field' }, [
+            $('label', { text: 'Note' }),
+            note
+          ]),
+          $('p', { class: 'err', text: state.error }),
+          $('button', {
+            class: 'btn',
+            disabled: state.loading,
+            on: { click: save }
+          }, [$('span', { text: state.loading ? 'Saving…' : 'Save location' })]),
+          $('div', { style: 'height:8px' }),
+          $('button', { class: 'btn secondary', on: { click: closeEditor } }, [$('span', { text: 'Cancel' })])
+        ])
+      ]);
+    }
+
+    function renderKeepFocus(el) {
+      const start = el.selectionStart;
+      render();
+      const next = document.querySelector('input[placeholder="Other location"]');
+      if (next) { next.focus(); next.setSelectionRange(start, start); }
+    }
+
+    function render() {
+      const root = document.getElementById('app');
+      root.replaceChildren();
+      if (!state.pin) root.appendChild(renderGate());
+      else {
+        root.appendChild(renderList());
+        if (state.selected) root.appendChild(renderEditor());
+      }
+      if (state.toast) root.appendChild($('div', { class: 'toast', text: state.toast }));
+    }
+
+    if (state.pin) loadItems();
+    else render();
+  </script>
+</body>
+</html>
