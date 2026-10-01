@@ -1,30 +1,32 @@
 # Hardware location updater
 
-A phone page for Tective so anyone can update where hardware is. Saves go into the **Product Status** tab of the production Planning Google Sheet.
+Phone page for Tective to update where hardware is.
 
-**Live link (share this):** [https://tectivejk.github.io/Updating-hardware/](https://tectivejk.github.io/Updating-hardware/)
+**Share this link:** https://tectivejk.github.io/Updating-hardware/
 
-The site stays online. Share that URL with anyone who needs it.
+That site stays online. Open it on a phone, or add it to the home screen.
 
-## Use it
+Saves go into the **Product Status** tab of the production Planning Google Sheet (item, location, who has it, note).
 
-1. Open the live link on your phone.
+Until the Google Sheet is connected (see below), the page runs in **demo mode**. Demo edits are not saved.
+
+## Use it (everyone)
+
+1. Open https://tectivejk.github.io/Updating-hardware/
 2. Enter the company PIN.
-3. Search for a drone, battery, hive or rotator.
+3. Search for a drone, battery, hive, or rotator.
 4. Tap it, choose a location, type your name, Save.
 
-Add it to the home screen:
+### Add to a phone home screen
 
-- **iPhone:** Safari → Share → Add to Home Screen
-- **Android:** Chrome → menu → Add to Home screen
+- **iPhone:** Safari → Share → **Add to Home Screen**
+- **Android:** Chrome → menu → **Add to Home screen**
 
-A link like `?item=refly-sf-010` opens that item directly (useful on printed QR labels later).
+A link like `https://tectivejk.github.io/Updating-hardware/?item=refly-sf-010` opens that item directly (useful on printed QR labels later).
 
-Until the Google Sheet is connected, the page runs in **demo mode**. Demo edits are not saved.
+## Connect the Google Sheet (once)
 
-## One-time setup (Google Sheet)
-
-You only do this once. After that, everyone uses the phone link.
+Do this once so Save writes to the real spreadsheet. After that, everyone keeps using the same live link.
 
 1. Open the hardware spreadsheet.
 2. **Extensions → Apps Script**.
@@ -36,7 +38,7 @@ You only do this once. After that, everyone uses the phone link.
    - Who has access: **Anyone**
 7. Copy the URL that ends in `/exec`.
 8. Paste that URL into [`config.js`](config.js) as `scriptUrl`.
-9. Commit and push so the live GitHub Pages site picks it up.
+9. Commit and push to GitHub (`github` remote). GitHub Pages will update the live site.
 
 The script only reads and writes **Product Status** columns:
 
@@ -49,12 +51,25 @@ The script only reads and writes **Product Status** columns:
 
 Each save also appends a row to a hidden **Location Log** tab (who moved what, and when).
 
-If you prefer, you can also share the Apps Script `/exec` URL. That URL is the same app.
-
-## Hosting
-
-The always-on site is GitHub Pages: [https://tectivejk.github.io/Updating-hardware/](https://tectivejk.github.io/Updating-hardware/). This repo also has [`.gitlab-ci.yml`](.gitlab-ci.yml) if you later publish from git.tective.nl.
+Placeholder rows such as `battery - (004)` are hidden in the app.
 
 ## PIN
 
 The PIN lives in Apps Script (`ACCESS_PIN`), not in this git repo. You can also set a script property named `PIN` in Apps Script; that overrides the file.
+
+## What is in this repo
+
+| File | Purpose |
+| --- | --- |
+| `index.html` | Phone page |
+| `config.js` | Apps Script URL for live saves |
+| `apps-script/Code.gs` | Reads/writes the Google Sheet |
+| `apps-script/Index.html` | Same phone page, for Apps Script |
+| `.github/workflows/pages.yml` | Publishes the live GitHub Pages site |
+| `.gitlab-ci.yml` | Optional GitLab Pages job |
+
+## Remotes
+
+- **Live site:** https://tectivejk.github.io/Updating-hardware/
+- **GitHub:** https://github.com/TectiveJK/Updating-hardware
+- **GitLab:** https://git.tective.nl/JohnKokotinis/Updating-hardware.git
