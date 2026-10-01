@@ -2,9 +2,13 @@
 
 A phone page for Tective so anyone can update where hardware is. Saves go into the **Product Status** tab of the production Planning Google Sheet.
 
+**Live link (share this):** [https://tectivejk.github.io/Updating-hardware/](https://tectivejk.github.io/Updating-hardware/)
+
+The site stays online. Share that URL with anyone who needs it.
+
 ## Use it
 
-1. Open the page on your phone.
+1. Open the live link on your phone.
 2. Enter the company PIN.
 3. Search for a drone, battery, hive or rotator.
 4. Tap it, choose a location, type your name, Save.
@@ -32,7 +36,7 @@ You only do this once. After that, everyone uses the phone link.
    - Who has access: **Anyone**
 7. Copy the URL that ends in `/exec`.
 8. Paste that URL into [`config.js`](config.js) as `scriptUrl`.
-9. Commit and push so GitLab Pages can pick it up.
+9. Commit and push so the live GitHub Pages site picks it up.
 
 The script only reads and writes **Product Status** columns:
 
@@ -45,11 +49,11 @@ The script only reads and writes **Product Status** columns:
 
 Each save also appends a row to a hidden **Location Log** tab (who moved what, and when).
 
-If GitLab Pages is not enabled, share the Apps Script `/exec` URL itself. That URL is the same app.
+If you prefer, you can also share the Apps Script `/exec` URL. That URL is the same app.
 
-## GitLab Pages
+## Hosting
 
-This repo includes [`.gitlab-ci.yml`](.gitlab-ci.yml). After Pages is on, the phone URL is the Pages URL for this project.
+The always-on site is GitHub Pages: [https://tectivejk.github.io/Updating-hardware/](https://tectivejk.github.io/Updating-hardware/). This repo also has [`.gitlab-ci.yml`](.gitlab-ci.yml) if you later publish from git.tective.nl.
 
 ## PIN
 
