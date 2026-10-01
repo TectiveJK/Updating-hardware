@@ -144,6 +144,7 @@
 </head>
 <body>
   <div id="app" class="screen"></div>
+  <script src="config.js"></script>
   <script>
     const LOCATIONS = [
       'In factory downstairs',
@@ -195,7 +196,8 @@
       customLocation: '',
       error: '',
       loading: false,
-      toast: ''
+      toast: '',
+      shared: false
     };
 
     function $(tag, attrs, kids) {
@@ -209,6 +211,20 @@
       });
       (kids || []).forEach((c) => { if (c) n.appendChild(c); });
       return n;
+    }
+
+    function scriptUrl() {
+      const url = (window.HARDWARE_CONFIG && window.HARDWARE_CONFIG.scriptUrl) || '';
+      if (!url || url.indexOf('PASTE_') !== -1) return '';
+      return url;
+    }
+
+    function inAppsScript() {
+      return !!(window.google && google.script && google.script.run);
+    }
+
+    function isShared() {
+      return inAppsScript() || !!scriptUrl();
     }
 
     function loadStore() {
@@ -238,7 +254,7 @@
       return 'other';
     }
 
-    function callApi(action, params) {
+    function localApi(action, params) {
       const items = loadStore();
       if (action === 'list') return Promise.resolve({ ok: true, items: items });
       if (action === 'add') {
@@ -268,6 +284,43 @@
       return Promise.resolve({ ok: true, item: Object.assign({}, item) });
     }
 
+    function jsonp(action, params) {
+      return new Promise((resolve, reject) => {
+        const cb = 'hwcb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        const qs = new URLSearchParams({ action: action, callback: cb });
+        Object.keys(params).forEach((k) => {
+          if (params[k] != null) qs.set(k, params[k]);
+        });
+        const s = document.createElement('script');
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('Timed out talking to the company list.'));
+        }, 20000);
+        function cleanup() {
+          clearTimeout(timer);
+          delete window[cb];
+          s.remove();
+        }
+        window[cb] = (data) => { cleanup(); resolve(data); };
+        s.onerror = () => { cleanup(); reject(new Error('Could not reach the company list.')); };
+        s.src = scriptUrl() + (scriptUrl().indexOf('?') === -1 ? '?' : '&') + qs.toString();
+        document.body.appendChild(s);
+      });
+    }
+
+    function callApi(action, params) {
+      if (inAppsScript()) {
+        return new Promise((resolve, reject) => {
+          const run = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+          if (action === 'list') run.listItems();
+          else if (action === 'add') run.addItem(params);
+          else run.updateItem(params);
+        });
+      }
+      if (scriptUrl()) return jsonp(action, params);
+      return localApi(action, params);
+    }
+
     function wantedItem() {
       const q = new URLSearchParams(location.search).get('item');
       return q ? q.trim() : '';
@@ -288,24 +341,37 @@
       setTimeout(() => { if (state.toast === msg) { state.toast = ''; render(); } }, 2200);
     }
 
-    async function loadItems(openName) {
-      state.loading = true;
-      state.error = '';
-      render();
+    async function loadItems(openName, silent) {
+      if (state.selected && silent) return;
+      if (!silent) {
+        state.loading = true;
+        state.error = '';
+        render();
+      }
       try {
         const res = await callApi('list', {});
         if (!res || res.ok === false) throw new Error((res && res.error) || 'Could not load items.');
-        state.items = res.items || [];
-        const target = openName || wantedItem();
+        const next = res.items || [];
+        const changed = JSON.stringify(state.items) !== JSON.stringify(next);
+        state.items = next;
+        state.shared = isShared();
+        const target = openName || (!silent && wantedItem());
         if (target) {
           const found = state.items.find((it) => it.name.toLowerCase() === target.toLowerCase());
           if (found) openEditor(found);
+        } else if (!silent || changed) {
+          render();
         }
       } catch (err) {
-        state.error = err.message || String(err);
+        if (!silent) {
+          state.error = err.message || String(err);
+          render();
+        }
       } finally {
-        state.loading = false;
-        render();
+        if (!silent) {
+          state.loading = false;
+          render();
+        }
       }
     }
 
@@ -512,6 +578,12 @@
     }
 
     loadItems();
+    setInterval(function () {
+      if (document.visibilityState === 'visible') loadItems(null, true);
+    }, 15000);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') loadItems(null, true);
+    });
   </script>
 </body>
 </html>
