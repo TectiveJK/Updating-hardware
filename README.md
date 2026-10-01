@@ -1,14 +1,16 @@
 # Hardware location updater
 
-Phone page for Tective so anyone can add hardware and update where it is. **Everyone sees the same list.**
+Phone page for Tective. Anyone can add hardware and update where it is. **Everyone sees the same list.**
 
 **Share this link:** https://tectivejk.github.io/Updating-hardware/
 
-That site stays online. Open it on a phone, or add it to the home screen.
+The site stays online. Open it on a phone, or add it to the home screen.
 
-When someone changes a location, other phones pick it up from the company Google Sheet (about every 15 seconds, or when they reopen the page).
+When someone changes a location, other phones show it from the company Google Sheet (within about 15 seconds, or when they reopen the page).
 
-The shared list is connected.
+The shared list is already connected.
+
+Backup Apps Script link (same app): https://script.google.com/macros/s/AKfycbz3KiLyly5nRN7-y9iyJvL-z6xLpJKtNH02faJ4NeH1j0BvYUhlbvUVOXqckLtIIGqcuw/exec
 
 ## What people can do
 
@@ -39,24 +41,32 @@ Locations on the buttons:
 
 A link like `https://tectivejk.github.io/Updating-hardware/?item=refly-sf-010` opens that item directly (useful on printed QR labels later).
 
-## Connect the shared list (once)
+## How sharing works
 
-This is required so all phones see the same locations. You only do it once.
+The phone page writes to the **Product Status** tab of the production Planning Google Sheet:
+
+| Column | Field |
+| --- | --- |
+| B | Item name |
+| C | Location |
+| E | Person responsible |
+| F | Note |
+
+New hardware is added as a new row. Each save also appends a line to a hidden **Location Log** tab.
+
+The Apps Script web app URL is stored in [`config.js`](config.js).
+
+### If you have to connect it again
 
 1. Open the hardware spreadsheet.
 2. **Extensions → Apps Script**.
-3. Delete any starter code. Paste [`apps-script/Code.gs`](apps-script/Code.gs).
-4. **File → New → HTML file**, name it `Index` (not Index.html). Paste [`apps-script/Index.html`](apps-script/Index.html).
-5. **Deploy → New deployment → Web app**
+3. Paste [`apps-script/Code.gs`](apps-script/Code.gs) into **Code.gs** (JavaScript only, not HTML).
+4. Next to **Files**, click **+** → **HTML**. Name it `Index` (not `Index.html`).
+5. Paste [`apps-script/Index.html`](apps-script/Index.html) into that file.
+6. **Deploy → New deployment → Web app**
    - Execute as: **Me**
    - Who has access: **Anyone**
-6. Copy the URL that ends in `/exec`.
-7. Paste that URL into [`config.js`](config.js) as `scriptUrl`.
-8. Commit and push to GitHub. The live site will then share one list.
-
-Until that URL is in `config.js`, a phone only keeps its own copy.
-
-The script reads and writes **Product Status** columns B (name), C (location), E (person), F (note). New hardware is appended as a new row.
+7. Put the `/exec` URL into [`config.js`](config.js) and push to GitHub.
 
 ## What is in this repo
 
