@@ -144,7 +144,6 @@
 </head>
 <body>
   <div id="app" class="screen"></div>
-  <script src="config.js"></script>
   <script>
     const LOCATIONS = [
       'In factory downstairs',
@@ -160,7 +159,7 @@
       { id: 'hive', label: 'Hive' },
       { id: 'rotator', label: 'Rotator' }
     ];
-    const DEMO_ITEMS = [
+    const STARTING_ITEMS = [
       { name: 'refly-ibb-010', location: 'In factory downstairs', person: '', note: '', gimbal: 'On Drone', type: 'drone' },
       { name: 'refly-ibb-015', location: 'In factory downstairs', person: '', note: '', gimbal: 'On Drone', type: 'drone' },
       { name: 'refly-ibb-007', location: 'testing', person: '', note: '', gimbal: 'On Drone', type: 'drone' },
@@ -186,6 +185,7 @@
       { name: 'rotator 25', location: 'In factory downstairs', person: '', note: 'without dish and antenna cone', gimbal: '', type: 'rotator' }
     ];
 
+    const STORE_KEY = 'hw_items';
     const state = {
       name: localStorage.getItem('hw_name') || '',
       items: [],
@@ -195,7 +195,6 @@
       customLocation: '',
       error: '',
       loading: false,
-      demo: false,
       toast: ''
     };
 
@@ -212,18 +211,22 @@
       return n;
     }
 
-    function scriptUrl() {
-      const url = (window.HARDWARE_CONFIG && window.HARDWARE_CONFIG.scriptUrl) || '';
-      if (!url || url.indexOf('PASTE_') !== -1) return '';
-      return url;
+    function loadStore() {
+      try {
+        const raw = localStorage.getItem(STORE_KEY);
+        if (!raw) return STARTING_ITEMS.map((it) => Object.assign({}, it));
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed) || !parsed.length) {
+          return STARTING_ITEMS.map((it) => Object.assign({}, it));
+        }
+        return parsed;
+      } catch (err) {
+        return STARTING_ITEMS.map((it) => Object.assign({}, it));
+      }
     }
 
-    function inAppsScript() {
-      return !!(window.google && google.script && google.script.run);
-    }
-
-    function useDemo() {
-      return !inAppsScript() && !scriptUrl();
+    function saveStore(items) {
+      localStorage.setItem(STORE_KEY, JSON.stringify(items));
     }
 
     function classify(name) {
@@ -236,68 +239,33 @@
     }
 
     function callApi(action, params) {
-      if (useDemo()) {
-        state.demo = true;
-        if (action === 'list') return Promise.resolve({ ok: true, items: DEMO_ITEMS.slice() });
-        if (action === 'add') {
-          const name = String(params.item || '').trim();
-          if (!name) return Promise.resolve({ ok: false, error: 'Type a hardware name.' });
-          if (DEMO_ITEMS.some((it) => it.name.toLowerCase() === name.toLowerCase())) {
-            return Promise.resolve({ ok: false, error: name + ' is already on the list.' });
-          }
-          const item = {
-            name: name,
-            location: params.location,
-            person: params.person || '',
-            note: params.note || '',
-            gimbal: '',
-            type: classify(name)
-          };
-          DEMO_ITEMS.push(item);
-          return Promise.resolve({ ok: true, item: Object.assign({}, item) });
+      const items = loadStore();
+      if (action === 'list') return Promise.resolve({ ok: true, items: items });
+      if (action === 'add') {
+        const name = String(params.item || '').trim();
+        if (!name) return Promise.resolve({ ok: false, error: 'Type a hardware name.' });
+        if (items.some((it) => it.name.toLowerCase() === name.toLowerCase())) {
+          return Promise.resolve({ ok: false, error: name + ' is already on the list.' });
         }
-        const item = DEMO_ITEMS.find((it) => it.name.toLowerCase() === String(params.item).toLowerCase());
-        if (!item) return Promise.resolve({ ok: false, error: 'Item not found.' });
-        item.location = params.location;
-        item.person = params.person;
-        item.note = params.note;
+        const item = {
+          name: name,
+          location: params.location,
+          person: params.person || '',
+          note: params.note || '',
+          gimbal: '',
+          type: classify(name)
+        };
+        items.push(item);
+        saveStore(items);
         return Promise.resolve({ ok: true, item: Object.assign({}, item) });
       }
-
-      if (inAppsScript()) {
-        return new Promise((resolve, reject) => {
-          const run = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
-          if (action === 'list') run.listItems();
-          else if (action === 'add') run.addItem(params);
-          else run.updateItem(params);
-        });
-      }
-
-      return jsonp(action, params);
-    }
-
-    function jsonp(action, params) {
-      return new Promise((resolve, reject) => {
-        const cb = 'hwcb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-        const qs = new URLSearchParams({ action: action, callback: cb });
-        Object.keys(params).forEach((k) => {
-          if (params[k] != null) qs.set(k, params[k]);
-        });
-        const s = document.createElement('script');
-        const timer = setTimeout(() => {
-          cleanup();
-          reject(new Error('Timed out talking to the spreadsheet.'));
-        }, 20000);
-        function cleanup() {
-          clearTimeout(timer);
-          delete window[cb];
-          s.remove();
-        }
-        window[cb] = (data) => { cleanup(); resolve(data); };
-        s.onerror = () => { cleanup(); reject(new Error('Could not reach the spreadsheet.')); };
-        s.src = scriptUrl() + (scriptUrl().indexOf('?') === -1 ? '?' : '&') + qs.toString();
-        document.body.appendChild(s);
-      });
+      const item = items.find((it) => it.name.toLowerCase() === String(params.item).toLowerCase());
+      if (!item) return Promise.resolve({ ok: false, error: 'Item not found.' });
+      item.location = params.location;
+      item.person = params.person;
+      item.note = params.note;
+      saveStore(items);
+      return Promise.resolve({ ok: true, item: Object.assign({}, item) });
     }
 
     function wantedItem() {
@@ -328,7 +296,6 @@
         const res = await callApi('list', {});
         if (!res || res.ok === false) throw new Error((res && res.error) || 'Could not load items.');
         state.items = res.items || [];
-        state.demo = useDemo();
         const target = openName || wantedItem();
         if (target) {
           const found = state.items.find((it) => it.name.toLowerCase() === target.toLowerCase());
@@ -434,7 +401,6 @@
           $('div', { class: 'sub', text: state.loading ? 'Loading…' : items.length + ' items' }),
           $('div', { class: 'field' }, [search])
         ]),
-        state.demo ? $('div', { class: 'banner', text: 'Demo mode. Connect the Google Sheet (see README) to save for real.' }) : null,
         state.error ? $('div', { class: 'banner', text: state.error }) : null,
         $('div', { class: 'filters' }, FILTERS.map((f) =>
           $('button', {
