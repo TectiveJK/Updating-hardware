@@ -8,9 +8,28 @@ This URL stays online. It does not go down when you close your laptop. Open it o
 
 When someone changes a location, other phones show it from the company Google Sheet (within about 15 seconds, or when they reopen the page).
 
-**Nobody needs a Google login.** Do not open the spreadsheet. Share only the GitHub Pages link above. The app talks to the sheet as you (the owner), so other phones can list and update hardware without access to your Google account.
+## Important: nobody needs a Google login
 
-If someone sees an empty list, they are probably on a Google sign-in page or an old saved link. Send them https://tectivejk.github.io/Updating-hardware/ and ask them to open it in the normal phone browser (not the Google Sheet).
+Do **not** open the spreadsheet. Do **not** share the Apps Script `/exec` link. Share **only** the GitHub Pages link above.
+
+The app talks to the sheet as you (the owner). Other phones can list, add, and update hardware without your Google account, and without access to the planning spreadsheet.
+
+Keep the planning spreadsheet private. Do not share it with the whole company.
+
+## If someone sees no hardware
+
+They are on the wrong link, an old home-screen icon, or a Google sign-in wall.
+
+1. Send them https://tectivejk.github.io/Updating-hardware/
+2. Ask them to open it in the normal phone browser (Safari or Chrome), not Google Sheets.
+3. If they added the app to the home screen earlier, delete that icon and add this link again.
+
+If it is still empty, the Apps Script web app access is wrong. In the spreadsheet: **Extensions → Apps Script → Deploy → Manage deployments → Edit**:
+
+- Execute as: **Me**
+- Who has access: **Anyone** (not “Anyone with a Google account”, and not only Tective)
+
+Then **Deploy**. People still should not log in.
 
 ## What people can do
 
@@ -43,31 +62,21 @@ A link like `https://tectivejk.github.io/Updating-hardware/?item=refly-sf-010` o
 
 ## How sharing works
 
-People never log into Google. The phone page calls an Apps Script web app that **runs as you** and reads/writes the **Product Status** tab of the production Planning Google Sheet.
-
-Do **not** share the planning spreadsheet with the whole company. Keep the sheet private. Only the web app needs access, and it already uses your account.
-
-The web app must be deployed as:
-
-- Execute as: **Me**
-- Who has access: **Anyone** (not “Anyone with a Google account”, and not only Tective)
-
-If that is wrong, other phones get a Google login wall or an empty list. Fix it with **Deploy → Manage deployments → the web app → Edit → New version**, then **Deploy**.
-
-The phone page writes to:
+The phone page calls an Apps Script web app. That script **runs as you** and reads/writes the **Product Status** tab.
 
 | Column | Field |
 | --- | --- |
 | B | Item name |
 | C | Location |
+| D | Gimbal |
 | E | Person responsible |
 | F | Note |
 
-New hardware is added as a new row. Each save also appends a line to a hidden **Location Log** tab.
+Data starts at row 5. New hardware is added as a new row. Each save also appends a line to a hidden **Location Log** tab.
 
-The Apps Script web app URL is stored in [`config.js`](config.js).
+The live `/exec` URL is in [`config.js`](config.js) and also baked into [`index.html`](index.html) so phones still work if `config.js` fails to load. Requests to Google do not send other people’s Google cookies, so they are not blocked for lacking spreadsheet access.
 
-### If you have to connect it again
+## If you have to connect it again
 
 1. Open the hardware spreadsheet.
 2. **Extensions → Apps Script**.
@@ -77,7 +86,7 @@ The Apps Script web app URL is stored in [`config.js`](config.js).
 6. **Deploy → New deployment → Web app**
    - Execute as: **Me**
    - Who has access: **Anyone**
-7. Put the `/exec` URL into [`config.js`](config.js) and push to GitHub.
+7. Put the `/exec` URL into [`config.js`](config.js) **and** the `DEFAULT_SCRIPT_URL` in [`index.html`](index.html) / [`apps-script/Index.html`](apps-script/Index.html), then push to GitHub.
 
 ## What is in this repo
 
