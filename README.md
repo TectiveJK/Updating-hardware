@@ -35,6 +35,8 @@ Then **Deploy**. People still should not log in.
 
 - Search drones, batteries, hive, and rotators
 - Update location, who has it, and a short note
+- Tap **Edit name** to rename an item
+- Tap **Delete** to remove an item from the list
 - Tap **Add hardware** to put a new item on the list
 
 ## Use it (everyone)
@@ -43,6 +45,7 @@ Then **Deploy**. People still should not log in.
 2. Search for an item, **or** tap **Add hardware**.
 3. For a new item, type a name (for example `refly-sf-034` or `battery 121`).
 4. Choose a location, type your name, Save.
+5. On an existing item, tap **Edit name** to rename it, or **Delete** to remove it.
 
 Locations on the buttons:
 
@@ -77,6 +80,8 @@ Data starts at row 5. New hardware is added as a new row. Each save also appends
 The live `/exec` URL is in [`config.js`](config.js) and also baked into [`index.html`](index.html) so phones still work if `config.js` fails to load. Requests to Google do not send other people’s Google cookies, so they are not blocked for lacking spreadsheet access.
 
 ## If you have to connect it again
+
+Delete and Edit name need this latest `Code.gs`. After you pull the repo, paste it into Apps Script and **Deploy → Manage deployments → Edit → New version → Deploy** (Execute as **Me**, Who has access **Anyone**).
 
 1. Open the hardware spreadsheet.
 2. **Extensions → Apps Script**.

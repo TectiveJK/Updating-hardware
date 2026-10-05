@@ -103,7 +103,31 @@
       padding: 0 16px; width: 100%;
     }
     .btn.secondary { background: var(--bg-2); color: var(--text); border: 1px solid var(--line); }
+    .btn.danger {
+      background: #3a1c1c;
+      color: #ffc4c4;
+      border: 1px solid var(--danger);
+    }
+    .btn.small {
+      width: auto;
+      flex: 0 0 auto;
+      min-height: 36px;
+      padding: 0 12px;
+      font-size: 13px;
+    }
     .btn:disabled { opacity: 0.55; }
+    .name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0 8px;
+    }
+    .name-row h2 {
+      flex: 1;
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.25;
+    }
     .field { margin: 12px 0; }
     .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
     .sheet {
@@ -198,7 +222,8 @@
       error: '',
       loading: false,
       toast: '',
-      shared: false
+      shared: false,
+      editingName: false
     };
 
     function $(tag, attrs, kids) {
@@ -276,8 +301,24 @@
         saveStore(items);
         return Promise.resolve({ ok: true, item: Object.assign({}, item) });
       }
+      if (action === 'delete') {
+        const idx = items.findIndex((it) => it.name.toLowerCase() === String(params.item).toLowerCase());
+        if (idx === -1) return Promise.resolve({ ok: false, error: 'Item not found.' });
+        const deleted = items[idx].name;
+        items.splice(idx, 1);
+        saveStore(items);
+        return Promise.resolve({ ok: true, deleted: deleted });
+      }
       const item = items.find((it) => it.name.toLowerCase() === String(params.item).toLowerCase());
       if (!item) return Promise.resolve({ ok: false, error: 'Item not found.' });
+      const newName = String(params.newName || '').trim();
+      if (newName && newName.toLowerCase() !== item.name.toLowerCase()) {
+        if (items.some((it) => it.name.toLowerCase() === newName.toLowerCase())) {
+          return Promise.resolve({ ok: false, error: newName + ' is already on the list.' });
+        }
+        item.name = newName;
+        item.type = classify(newName);
+      }
       item.location = params.location;
       item.person = params.person;
       item.note = params.note;
@@ -326,6 +367,7 @@
           const run = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
           if (action === 'list') run.listItems();
           else if (action === 'add') run.addItem(params);
+          else if (action === 'delete') run.deleteItem(params);
           else run.updateItem(params);
         });
       }
@@ -400,19 +442,23 @@
         type: 'other'
       };
       state.customLocation = '';
+      state.editingName = true;
       state.error = '';
       render();
     }
 
     function openEditor(item) {
-      state.selected = Object.assign({}, item);
+      state.selected = Object.assign({ originalName: item.name }, item);
       state.customLocation = LOCATIONS.indexOf(item.location) === -1 ? item.location : '';
       if (!state.selected.person && state.name) state.selected.person = state.name;
+      state.editingName = false;
+      state.error = '';
       render();
     }
 
     function closeEditor() {
       state.selected = null;
+      state.editingName = false;
       render();
     }
 
@@ -438,8 +484,11 @@
       render();
       try {
         const adding = !!item.isNew;
+        const originalName = (item.originalName || hardwareName).trim();
+        const renamed = !adding && hardwareName.toLowerCase() !== originalName.toLowerCase();
         const res = await callApi(adding ? 'add' : 'update', {
-          item: hardwareName,
+          item: adding ? hardwareName : originalName,
+          newName: renamed ? hardwareName : '',
           location: location,
           person: item.person || '',
           note: item.note || ''
@@ -448,11 +497,37 @@
         localStorage.setItem('hw_name', item.person || '');
         state.name = item.person || '';
         const saved = Object.assign({ isNew: false }, res.item || item, { name: hardwareName });
-        const idx = state.items.findIndex((it) => it.name.toLowerCase() === hardwareName.toLowerCase());
+        const lookFor = originalName.toLowerCase();
+        const idx = state.items.findIndex((it) => it.name.toLowerCase() === lookFor || it.name.toLowerCase() === hardwareName.toLowerCase());
         if (idx !== -1) state.items[idx] = saved;
         else state.items.unshift(saved);
         state.selected = null;
-        toast(adding ? 'Added ' + hardwareName : 'Updated ' + hardwareName);
+        state.editingName = false;
+        toast(adding ? 'Added ' + hardwareName : (renamed ? 'Renamed to ' + hardwareName : 'Updated ' + hardwareName));
+      } catch (err) {
+        state.error = err.message || String(err);
+      } finally {
+        state.loading = false;
+        render();
+      }
+    }
+
+    async function removeItem() {
+      const item = state.selected;
+      if (!item || item.isNew) return;
+      const hardwareName = (item.originalName || item.name || '').trim();
+      if (!hardwareName) return;
+      if (!window.confirm('Delete ' + hardwareName + ' from the company list?')) return;
+      state.loading = true;
+      state.error = '';
+      render();
+      try {
+        const res = await callApi('delete', { item: hardwareName });
+        if (!res || res.ok === false) throw new Error((res && res.error) || 'Delete failed.');
+        state.items = state.items.filter((it) => it.name.toLowerCase() !== hardwareName.toLowerCase());
+        state.selected = null;
+        state.editingName = false;
+        toast('Deleted ' + hardwareName);
       } catch (err) {
         state.error = err.message || String(err);
       } finally {
@@ -548,7 +623,25 @@
                 $('label', { text: 'Hardware name' }),
                 nameInput
               ])
-            : $('h2', { style: 'margin:4px 0 6px', text: item.name }),
+            : (state.editingName
+              ? $('div', { class: 'field' }, [
+                  $('label', { text: 'Hardware name' }),
+                  nameInput
+                ])
+              : $('div', { class: 'name-row' }, [
+                  $('h2', { text: item.name }),
+                  $('button', {
+                    class: 'btn secondary small',
+                    type: 'button',
+                    on: { click: () => {
+                      state.editingName = true;
+                      state.error = '';
+                      render();
+                      const el = document.querySelector('input[placeholder^="e.g."]');
+                      if (el) { el.focus(); el.select(); }
+                    } }
+                  }, [$('span', { text: 'Edit name' })])
+                ])),
           !adding && item.gimbal ? $('div', { class: 'sub', text: 'Gimbal: ' + item.gimbal }) : null,
           $('div', { class: 'field' }, [
             $('label', { text: 'Location' }),
@@ -578,6 +671,13 @@
             disabled: state.loading,
             on: { click: save }
           }, [$('span', { text: state.loading ? 'Saving…' : (adding ? 'Add hardware' : 'Save location') })]),
+          !adding ? $('div', { style: 'height:8px' }) : null,
+          !adding ? $('button', {
+            class: 'btn danger',
+            type: 'button',
+            disabled: state.loading,
+            on: { click: removeItem }
+          }, [$('span', { text: 'Delete' })]) : null,
           $('div', { style: 'height:8px' }),
           $('button', { class: 'btn secondary', on: { click: closeEditor } }, [$('span', { text: 'Cancel' })])
         ])

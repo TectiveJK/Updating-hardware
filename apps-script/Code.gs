@@ -43,6 +43,7 @@ function updateItem(payload) {
   const name = String(payload.item || payload.name || '').trim();
   if (!name) return { ok: false, error: 'Pick an item first.' };
 
+  const newName = String(payload.newName || '').trim();
   const location = String(payload.location || '').trim();
   if (!location) return { ok: false, error: 'Choose a location.' };
 
@@ -56,6 +57,15 @@ function updateItem(payload) {
     const row = findRow(sheet, name);
     if (!row) return { ok: false, error: 'Item not found: ' + name };
 
+    var finalName = name;
+    if (newName && newName.toLowerCase() !== name.toLowerCase()) {
+      if (isPlaceholder_(newName)) return { ok: false, error: 'Use a real name, not a placeholder.' };
+      const taken = findRow(sheet, newName);
+      if (taken && taken !== row) return { ok: false, error: newName + ' is already on the list.' };
+      sheet.getRange(row, COL.name).setValue(newName);
+      finalName = newName;
+    }
+
     const oldLocation = String(sheet.getRange(row, COL.location).getDisplayValue() || '');
     const oldPerson = String(sheet.getRange(row, COL.person).getDisplayValue() || '');
     const oldNote = String(sheet.getRange(row, COL.note).getDisplayValue() || '');
@@ -65,26 +75,59 @@ function updateItem(payload) {
     sheet.getRange(row, COL.note).setValue(note);
 
     appendLog_({
-      item: name,
+      item: finalName,
       oldLocation: oldLocation,
       newLocation: location,
       oldPerson: oldPerson,
       person: person,
       oldNote: oldNote,
-      note: note
+      note: (finalName !== name ? 'Renamed from ' + name + '. ' : '') + note
     });
 
     return {
       ok: true,
       item: {
-        name: name,
+        name: finalName,
         location: location,
         person: person,
         note: note,
         gimbal: String(sheet.getRange(row, COL.gimbal).getDisplayValue() || ''),
-        type: classify_(name)
+        type: classify_(finalName)
       }
     };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function deleteItem(payload) {
+  payload = payload || {};
+  const name = String(payload.item || payload.name || '').trim();
+  if (!name) return { ok: false, error: 'Pick an item first.' };
+
+  const lock = LockService.getDocumentLock();
+  lock.waitLock(15000);
+  try {
+    const sheet = statusSheet();
+    const row = findRow(sheet, name);
+    if (!row) return { ok: false, error: 'Item not found: ' + name };
+
+    const oldLocation = String(sheet.getRange(row, COL.location).getDisplayValue() || '');
+    const oldPerson = String(sheet.getRange(row, COL.person).getDisplayValue() || '');
+    const oldNote = String(sheet.getRange(row, COL.note).getDisplayValue() || '');
+
+    appendLog_({
+      item: name,
+      oldLocation: oldLocation,
+      newLocation: 'Deleted',
+      oldPerson: oldPerson,
+      person: '',
+      oldNote: oldNote,
+      note: 'Deleted from the hardware list'
+    });
+
+    sheet.deleteRow(row);
+    return { ok: true, deleted: name };
   } finally {
     lock.releaseLock();
   }
@@ -142,6 +185,7 @@ function handleAction(p) {
     if (p.action === 'update') {
       return updateItem({
         item: p.item,
+        newName: p.newName,
         location: p.location,
         person: p.person,
         note: p.note
@@ -153,6 +197,11 @@ function handleAction(p) {
         location: p.location,
         person: p.person,
         note: p.note
+      });
+    }
+    if (p.action === 'delete') {
+      return deleteItem({
+        item: p.item
       });
     }
     return { ok: false, error: 'Unknown action.' };
