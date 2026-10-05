@@ -8,6 +8,7 @@
  * Then paste the /exec URL into ../config.js
  */
 
+const SPREADSHEET_ID = '1wd0kwOdgz8fdb54RBnoJgTuMjonhJb5pj0L0fBfC2vg';
 const STATUS_SHEET = 'Product Status';
 const LOG_SHEET = 'Location Log';
 const DATA_START_ROW = 5;
@@ -197,15 +198,23 @@ function findRow(sheet, name) {
   return 0;
 }
 
+function boundSpreadsheet() {
+  try {
+    const active = SpreadsheetApp.getActive();
+    if (active) return active;
+  } catch (err) {}
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
 function statusSheet() {
-  const ss = SpreadsheetApp.getActive();
+  const ss = boundSpreadsheet();
   const sheet = ss.getSheetByName(STATUS_SHEET);
   if (!sheet) throw new Error('Sheet "' + STATUS_SHEET + '" was not found.');
   return sheet;
 }
 
 function appendLog_(entry) {
-  const ss = SpreadsheetApp.getActive();
+  const ss = boundSpreadsheet();
   var sheet = ss.getSheetByName(LOG_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(LOG_SHEET);

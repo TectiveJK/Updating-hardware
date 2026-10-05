@@ -187,6 +187,7 @@
     ];
 
     const STORE_KEY = 'hw_items';
+    const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3KiLyly5nRN7-y9iyJvL-z6xLpJKtNH02faJ4NeH1j0BvYUhlbvUVOXqckLtIIGqcuw/exec';
     const state = {
       name: localStorage.getItem('hw_name') || '',
       items: [],
@@ -214,7 +215,7 @@
     }
 
     function scriptUrl() {
-      const url = (window.HARDWARE_CONFIG && window.HARDWARE_CONFIG.scriptUrl) || '';
+      const url = (window.HARDWARE_CONFIG && window.HARDWARE_CONFIG.scriptUrl) || DEFAULT_SCRIPT_URL;
       if (!url || url.indexOf('PASTE_') !== -1) return '';
       return url;
     }
@@ -284,19 +285,25 @@
       return Promise.resolve({ ok: true, item: Object.assign({}, item) });
     }
 
-    function jsonp(action, params) {
+    function jsonp(action, params, allowCookies) {
       return new Promise((resolve, reject) => {
         const cb = 'hwcb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-        const qs = new URLSearchParams({ action: action, callback: cb });
+        const qs = new URLSearchParams({ action: action, callback: cb, t: String(Date.now()) });
         Object.keys(params).forEach((k) => {
           if (params[k] != null) qs.set(k, params[k]);
         });
         const s = document.createElement('script');
+        s.async = true;
+        s.referrerPolicy = 'no-referrer';
+        if (!allowCookies) s.crossOrigin = 'anonymous';
+        let settled = false;
         const timer = setTimeout(() => {
           cleanup();
           reject(new Error('Timed out talking to the company list.'));
         }, 20000);
         function cleanup() {
+          if (settled) return;
+          settled = true;
           clearTimeout(timer);
           delete window[cb];
           s.remove();
@@ -309,6 +316,11 @@
     }
 
     function callApi(action, params) {
+      if (scriptUrl()) {
+        return jsonp(action, params, false).catch(function (err) {
+          return jsonp(action, params, true).catch(function () { throw err; });
+        });
+      }
       if (inAppsScript()) {
         return new Promise((resolve, reject) => {
           const run = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
@@ -317,7 +329,6 @@
           else run.updateItem(params);
         });
       }
-      if (scriptUrl()) return jsonp(action, params);
       return localApi(action, params);
     }
 
@@ -364,7 +375,10 @@
         }
       } catch (err) {
         if (!silent) {
-          state.error = err.message || String(err);
+          state.error = (err && err.message) || String(err);
+          if (!state.items.length) {
+            state.error = 'Could not load hardware. You do not need a Google login. Check the connection and tap Retry.';
+          }
           render();
         }
       } finally {
@@ -467,7 +481,15 @@
           $('div', { class: 'sub', text: state.loading ? 'Loading…' : items.length + ' items' }),
           $('div', { class: 'field' }, [search])
         ]),
-        state.error ? $('div', { class: 'banner', text: state.error }) : null,
+        state.error ? $('div', { class: 'banner' }, [
+          $('div', { text: state.error }),
+          $('button', {
+            class: 'btn secondary',
+            type: 'button',
+            style: 'margin-top:8px',
+            on: { click: () => loadItems() }
+          }, [$('span', { text: 'Retry' })])
+        ]) : null,
         $('div', { class: 'filters' }, FILTERS.map((f) =>
           $('button', {
             class: 'chip' + (state.filter === f.id ? ' on' : ''),
@@ -483,7 +505,7 @@
               $('span', { text: it.person ? ' · ' + it.person : '' })
             ])
           ])
-        ) : [$('div', { class: 'empty', text: 'No matching hardware.' })]),
+        ) : [$('div', { class: 'empty', text: state.loading ? 'Loading…' : (state.error ? 'Hardware did not load.' : 'No matching hardware.') })]),
         $('button', {
           class: 'btn add-btn',
           type: 'button',

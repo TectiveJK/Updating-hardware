@@ -8,9 +8,9 @@ This URL stays online. It does not go down when you close your laptop. Open it o
 
 When someone changes a location, other phones show it from the company Google Sheet (within about 15 seconds, or when they reopen the page).
 
-The shared list is already connected.
+**Nobody needs a Google login.** Do not open the spreadsheet. Share only the GitHub Pages link above. The app talks to the sheet as you (the owner), so other phones can list and update hardware without access to your Google account.
 
-Backup Apps Script link (same app): https://script.google.com/macros/s/AKfycbz3KiLyly5nRN7-y9iyJvL-z6xLpJKtNH02faJ4NeH1j0BvYUhlbvUVOXqckLtIIGqcuw/exec
+If someone sees an empty list, they are probably on a Google sign-in page or an old saved link. Send them https://tectivejk.github.io/Updating-hardware/ and ask them to open it in the normal phone browser (not the Google Sheet).
 
 ## What people can do
 
@@ -43,7 +43,18 @@ A link like `https://tectivejk.github.io/Updating-hardware/?item=refly-sf-010` o
 
 ## How sharing works
 
-The phone page writes to the **Product Status** tab of the production Planning Google Sheet:
+People never log into Google. The phone page calls an Apps Script web app that **runs as you** and reads/writes the **Product Status** tab of the production Planning Google Sheet.
+
+Do **not** share the planning spreadsheet with the whole company. Keep the sheet private. Only the web app needs access, and it already uses your account.
+
+The web app must be deployed as:
+
+- Execute as: **Me**
+- Who has access: **Anyone** (not “Anyone with a Google account”, and not only Tective)
+
+If that is wrong, other phones get a Google login wall or an empty list. Fix it with **Deploy → Manage deployments → the web app → Edit → New version**, then **Deploy**.
+
+The phone page writes to:
 
 | Column | Field |
 | --- | --- |
