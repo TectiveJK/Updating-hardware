@@ -1,18 +1,18 @@
 # Hardware location updater
 
-Phone page for Tective. Anyone can add hardware and update where it is. **Everyone sees the same list.**
+Phone page for Tective. Anyone can add, rename, move, or delete hardware. **Everyone sees the same list.**
 
 **Always-live link (share this):** https://tectivejk.github.io/Updating-hardware/
 
 This URL stays online. It does not go down when you close your laptop. Open it on a phone, or add it to the home screen.
 
-When someone changes a location, other phones show it from the company Google Sheet (within about 15 seconds, or when they reopen the page).
+When someone changes a name or location, or deletes an item, other phones show it from the company Google Sheet (within about 15 seconds, or when they reopen the page).
 
 ## Important: nobody needs a Google login
 
 Do **not** open the spreadsheet. Do **not** share the Apps Script `/exec` link. Share **only** the GitHub Pages link above.
 
-The app talks to the sheet as you (the owner). Other phones can list, add, and update hardware without your Google account, and without access to the planning spreadsheet.
+The app talks to the sheet as you (the owner). Other phones can list, add, rename, update, and delete hardware without your Google account, and without access to the planning spreadsheet.
 
 Keep the planning spreadsheet private. Do not share it with the whole company.
 
@@ -35,8 +35,8 @@ Then **Deploy**. People still should not log in.
 
 - Search drones, batteries, hive, and rotators
 - Update location, who has it, and a short note
-- Tap **Edit name** to rename an item
-- Tap **Delete** to remove an item from the list
+- Tap **Edit name** (next to the item name) to rename hardware
+- Tap **Delete** (under **Save location**) to remove hardware from the list
 - Tap **Add hardware** to put a new item on the list
 
 ## Use it (everyone)
@@ -44,8 +44,9 @@ Then **Deploy**. People still should not log in.
 1. Open https://tectivejk.github.io/Updating-hardware/
 2. Search for an item, **or** tap **Add hardware**.
 3. For a new item, type a name (for example `refly-sf-034` or `battery 121`).
-4. Choose a location, type your name, Save.
-5. On an existing item, tap **Edit name** to rename it, or **Delete** to remove it.
+4. Choose a location, type your name, **Save location**.
+5. To rename: open the item → tap **Edit name** next to the title → type the new name → **Save location**.
+6. To remove it: open the item → tap **Delete** under **Save location** → confirm.
 
 Locations on the buttons:
 
@@ -75,13 +76,25 @@ The phone page calls an Apps Script web app. That script **runs as you** and rea
 | E | Person responsible |
 | F | Note |
 
-Data starts at row 5. New hardware is added as a new row. Each save also appends a line to a hidden **Location Log** tab.
+Data starts at row 5. New hardware is added as a new row. Rename changes column B. Delete removes that row. Each save also appends a line to a hidden **Location Log** tab.
 
 The live `/exec` URL is in [`config.js`](config.js) and also baked into [`index.html`](index.html) so phones still work if `config.js` fails to load. Requests to Google do not send other people’s Google cookies, so they are not blocked for lacking spreadsheet access.
 
-## If you have to connect it again
+## Turn on Delete and Edit name (required once)
 
-Delete and Edit name need this latest `Code.gs`. After you pull the repo, paste it into Apps Script and **Deploy → Manage deployments → Edit → New version → Deploy** (Execute as **Me**, Who has access **Anyone**).
+The phone buttons are already live. The Google script must be updated too, or **Delete** returns “Unknown action” and rename does not change the sheet.
+
+1. Open the hardware spreadsheet.
+2. **Extensions → Apps Script**.
+3. Replace **Code.gs** with [`apps-script/Code.gs`](apps-script/Code.gs) (JavaScript only, not HTML).
+4. Open the HTML file named `Index` and paste [`apps-script/Index.html`](apps-script/Index.html).
+5. **Deploy → Manage deployments →** the existing web app → **Edit**
+   - New version
+   - Execute as: **Me**
+   - Who has access: **Anyone**
+6. **Deploy**. Keep the same `/exec` URL if Google shows one.
+
+## If you have to connect it again
 
 1. Open the hardware spreadsheet.
 2. **Extensions → Apps Script**.
@@ -97,9 +110,9 @@ Delete and Edit name need this latest `Code.gs`. After you pull the repo, paste 
 
 | File | Purpose |
 | --- | --- |
-| `index.html` | Phone page (search, update, add) |
+| `index.html` | Phone page (search, update, add, rename, delete) |
 | `config.js` | Shared-list URL (Apps Script `/exec`) |
-| `apps-script/Code.gs` | Reads/writes the Google Sheet for every phone |
+| `apps-script/Code.gs` | Reads/writes/renames/deletes rows on the Google Sheet |
 | `apps-script/Index.html` | Same phone page, for Apps Script |
 | `manifest.webmanifest` | Add to home screen |
 | `icon.svg` | App icon |
