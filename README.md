@@ -48,7 +48,7 @@ Then **Deploy**. People still should not log in.
 5. To rename: open the item → tap **Edit name** next to the title → type the new name → **Save location**.
 6. To remove it: open the item → tap **Delete** under **Save location** → confirm.
 
-**Delete works without a Google login.** The item disappears from every phone. If the live Google script does not yet know the `delete` action, the app sets that row’s location to `Deleted` and hides it. It will not show **Unknown action**. After you paste the latest `Code.gs` and Deploy (optional), Delete also removes the row from the spreadsheet.
+**Delete works without a Google login.** The app never calls the missing Google `delete` action (that was the **Unknown action** error). It sets that row’s location to `Deleted` and hides it on every phone. After you paste the latest `Code.gs` and Deploy (optional), you can later switch Delete to remove the row from the spreadsheet.
 
 Locations on the buttons:
 

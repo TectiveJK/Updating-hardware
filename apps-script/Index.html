@@ -6,6 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0e1a24">
+  <meta http-equiv="Cache-Control" content="no-store">
   <title>Hardware</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -532,16 +533,13 @@
       state.error = '';
       render();
       try {
-        let res = await callApi('delete', { item: hardwareName });
-        const unknown = res && res.ok === false && /unknown action/i.test(String(res.error || ''));
-        if (unknown) {
-          res = await callApi('update', {
-            item: hardwareName,
-            location: 'Deleted',
-            person: '',
-            note: 'Deleted from the hardware list'
-          });
-        }
+        // The live Google script only knows list/update/add. Do not call action=delete.
+        const res = await callApi('update', {
+          item: hardwareName,
+          location: 'Deleted',
+          person: '',
+          note: 'Deleted from the hardware list'
+        });
         if (!res || res.ok === false) throw new Error((res && res.error) || 'Delete failed.');
         state.items = state.items.filter((it) => it.name.toLowerCase() !== hardwareName.toLowerCase());
         state.selected = null;
