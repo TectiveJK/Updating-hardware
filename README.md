@@ -46,7 +46,9 @@ Then **Deploy**. People still should not log in.
 3. For a new item, type a name (for example `refly-sf-034` or `battery 121`).
 4. Choose a location, type your name, **Save location**.
 5. To rename: open the item → tap **Edit name** next to the title → type the new name → **Save location**.
-6. To remove it: open the item → tap **Delete** under **Save location** → confirm. The item leaves every phone’s list. If the Google script has not been updated yet, the app marks that row’s location as `Deleted` so it stays off the list. After you paste the latest `Code.gs` and Deploy, Delete removes the row from the sheet.
+6. To remove it: open the item → tap **Delete** under **Save location** → confirm.
+
+**Delete works without a Google login.** The item disappears from every phone. If the live Google script does not yet know the `delete` action, the app sets that row’s location to `Deleted` and hides it. It will not show **Unknown action**. After you paste the latest `Code.gs` and Deploy (optional), Delete also removes the row from the spreadsheet.
 
 Locations on the buttons:
 
@@ -76,13 +78,13 @@ The phone page calls an Apps Script web app. That script **runs as you** and rea
 | E | Person responsible |
 | F | Note |
 
-Data starts at row 5. New hardware is added as a new row. Rename changes column B. Delete removes that row. Each save also appends a line to a hidden **Location Log** tab.
+Data starts at row 5. New hardware is added as a new row. Rename changes column B. Delete hides the item (location `Deleted`) or, after you deploy the latest `Code.gs`, removes the row. Rows marked `Deleted` never appear in the app. Each save also appends a line to a hidden **Location Log** tab.
 
 The live `/exec` URL is in [`config.js`](config.js) and also baked into [`index.html`](index.html) so phones still work if `config.js` fails to load. Requests to Google do not send other people’s Google cookies, so they are not blocked for lacking spreadsheet access.
 
-## Turn on Delete and Edit name (required once)
+## Optional: remove deleted rows from the sheet
 
-The phone buttons are already live. The Google script must be updated too, or **Delete** returns “Unknown action” and rename does not change the sheet.
+The live phone app already deletes items from the company list. To also erase those rows in Google Sheets:
 
 1. Open the hardware spreadsheet.
 2. **Extensions → Apps Script**.
