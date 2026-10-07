@@ -282,6 +282,14 @@
       return 'other';
     }
 
+    function isDeletedItem(it) {
+      return String((it && it.location) || '').trim().toLowerCase() === 'deleted';
+    }
+
+    function visibleItems(items) {
+      return (items || []).filter((it) => !isDeletedItem(it));
+    }
+
     function localApi(action, params) {
       const items = loadStore();
       if (action === 'list') return Promise.resolve({ ok: true, items: items });
@@ -406,7 +414,7 @@
       try {
         const res = await callApi('list', {});
         if (!res || res.ok === false) throw new Error((res && res.error) || 'Could not load items.');
-        const next = res.items || [];
+        const next = visibleItems(res.items || []);
         const changed = JSON.stringify(state.items) !== JSON.stringify(next);
         state.items = next;
         state.shared = isShared();
@@ -524,7 +532,16 @@
       state.error = '';
       render();
       try {
-        const res = await callApi('delete', { item: hardwareName });
+        let res = await callApi('delete', { item: hardwareName });
+        const unknown = res && res.ok === false && /unknown action/i.test(String(res.error || ''));
+        if (unknown) {
+          res = await callApi('update', {
+            item: hardwareName,
+            location: 'Deleted',
+            person: '',
+            note: 'Deleted from the hardware list'
+          });
+        }
         if (!res || res.ok === false) throw new Error((res && res.error) || 'Delete failed.');
         state.items = state.items.filter((it) => it.name.toLowerCase() !== hardwareName.toLowerCase());
         state.selected = null;

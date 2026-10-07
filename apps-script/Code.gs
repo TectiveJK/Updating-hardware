@@ -222,9 +222,11 @@ function readItems() {
   for (var i = 0; i < values.length; i++) {
     const name = String(values[i][COL.name - 1] || '').trim();
     if (isPlaceholder_(name)) continue;
+    const location = String(values[i][COL.location - 1] || '').trim();
+    if (location.toLowerCase() === 'deleted') continue;
     items.push({
       name: name,
-      location: String(values[i][COL.location - 1] || '').trim(),
+      location: location,
       gimbal: String(values[i][COL.gimbal - 1] || '').trim(),
       person: String(values[i][COL.person - 1] || '').trim(),
       note: String(values[i][COL.note - 1] || '').trim(),

@@ -46,7 +46,7 @@ Then **Deploy**. People still should not log in.
 3. For a new item, type a name (for example `refly-sf-034` or `battery 121`).
 4. Choose a location, type your name, **Save location**.
 5. To rename: open the item → tap **Edit name** next to the title → type the new name → **Save location**.
-6. To remove it: open the item → tap **Delete** under **Save location** → confirm.
+6. To remove it: open the item → tap **Delete** under **Save location** → confirm. The item leaves every phone’s list. If the Google script has not been updated yet, the app marks that row’s location as `Deleted` so it stays off the list. After you paste the latest `Code.gs` and Deploy, Delete removes the row from the sheet.
 
 Locations on the buttons:
 
