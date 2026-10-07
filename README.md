@@ -48,7 +48,13 @@ Then **Deploy**. People still should not log in.
 5. To rename: open the item → tap **Edit name** next to the title → type the new name → **Save location**.
 6. To remove it: open the item → tap **Delete** under **Save location** → confirm.
 
-**Delete works without a Google login.** The app never calls the missing Google `delete` action (that was the **Unknown action** error). It sets that row’s location to `Deleted` and hides it on every phone. After you paste the latest `Code.gs` and Deploy (optional), you can later switch Delete to remove the row from the spreadsheet.
+**Delete works without a Google login.** The app does **not** call Google’s `delete` action (that caused **Unknown action**). It updates the row’s location to `Deleted` and hides it on every phone.
+
+If a phone still says **Unknown action**, it is on an old cached page:
+
+1. Open https://tectivejk.github.io/Updating-hardware/?v=cf4741b
+2. Pull down to refresh, or close the tab and open that link again.
+3. If the app is on the home screen, delete the icon and add the live link again.
 
 Locations on the buttons:
 
