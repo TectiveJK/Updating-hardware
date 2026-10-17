@@ -6,20 +6,31 @@ Phone page for Tective. Anyone can add, rename, move, or delete hardware. **Ever
 
 This URL stays online. It does not go down when you close your laptop. Open it on a phone, or add it to the home screen.
 
-When someone changes a name or location, or deletes an item, other phones show it from the company Google Sheet (within about 8 seconds, or when they reopen the page).
+**GitHub:** https://github.com/TectiveJK/Updating-hardware
 
-The [Field Test Operations Dashboard](https://tectivejk.github.io/Field-Test-Operations-Dashboard./) **Fleet** page uses this same list. Change a location here and Fleet updates; change it on Fleet and this app updates. On GitHub Pages they also share a same-origin cache, so the other tab updates immediately.
+## Categories
 
-Fleet 0.2.19 is in `field-test-operations-dashboard-0.2.19.patch`. In that repo:
+The chips at the top filter the list:
 
-```bash
-git clone https://github.com/TectiveJK/Field-Test-Operations-Dashboard..git
-cd Field-Test-Operations-Dashboard.
-git apply path/to/field-test-operations-dashboard-0.2.19.patch
-git push origin main
-```
+| Chip | What it shows |
+| --- | --- |
+| **All** | Every item |
+| **Drones** | ReFly and IBB airframes |
+| **Batteries** | Battery packs |
+| **Hive** | SkyHive / hive |
+| **Rotator** | Ground rotator |
+| **GCS** | Ground control stations: **GCS-001**, **GCS-004**, **GCS-005** |
 
-GitHub Actions then publishes Fleet. Optional: paste `apps-script/Code.gs` into the spreadsheet Apps Script and deploy if you want looser name matching on the sheet itself.
+A name that contains `gcs` is filed under **GCS**. New GCS units added later show up there automatically.
+
+## Fleet
+
+The [Field Test Operations Dashboard](https://tectivejk.github.io/Field-Test-Operations-Dashboard./) **Fleet** page uses this same company list.
+
+- Change a location here, and Fleet updates.
+- Change it on Fleet, and this app updates.
+
+Both live sites talk to the same Google Sheet. On GitHub Pages they also share a same-origin cache (`shared-hardware.js`), so the other tab updates immediately. Other phones pick up a change within about 8 seconds, or when they reopen the page.
 
 ## Important: nobody needs a Google login
 
@@ -46,7 +57,8 @@ Then **Deploy**. People still should not log in.
 
 ## What people can do
 
-- Search drones, batteries, hive, and rotators
+- Filter by **All**, **Drones**, **Batteries**, **Hive**, **Rotator**, or **GCS**
+- Search drones, batteries, hive, rotators, and GCS
 - Update location, who has it, and a short note
 - Tap **Edit name** (next to the item name) to rename hardware
 - Tap **Delete** (under **Save location**) to remove hardware from the list
@@ -55,8 +67,8 @@ Then **Deploy**. People still should not log in.
 ## Use it (everyone)
 
 1. Open https://tectivejk.github.io/Updating-hardware/
-2. Search for an item, **or** tap **Add hardware**.
-3. For a new item, type a name (for example `refly-sf-034` or `battery 121`).
+2. Search for an item, tap a category, **or** tap **Add hardware**.
+3. For a new item, type a name (for example `refly-sf-034`, `battery 121`, or `GCS-006`).
 4. Choose a location, type your name, **Save location**.
 5. To rename: open the item → tap **Edit name** next to the title → type the new name → **Save location**.
 6. To remove it: open the item → tap **Delete** under **Save location** → confirm.
@@ -65,7 +77,7 @@ Then **Deploy**. People still should not log in.
 
 If a phone still says **Unknown action**, it is on an old cached page:
 
-1. Open https://tectivejk.github.io/Updating-hardware/?v=cf4741b
+1. Open https://tectivejk.github.io/Updating-hardware/?v=gcs
 2. Pull down to refresh, or close the tab and open that link again.
 3. If the app is on the home screen, delete the icon and add the live link again.
 
@@ -131,7 +143,7 @@ The live phone app already deletes items from the company list. To also erase th
 
 | File | Purpose |
 | --- | --- |
-| `index.html` | Phone page (search, update, add, rename, delete) |
+| `index.html` | Phone page (categories, search, update, add, rename, delete) |
 | `shared-hardware.js` | Same-origin cache so Fleet and this app update each other immediately |
 | `config.js` | Shared-list URL (Apps Script `/exec`) |
 | `apps-script/Code.gs` | Reads/writes/renames/deletes rows on the Google Sheet |
@@ -139,21 +151,49 @@ The live phone app already deletes items from the company list. To also erase th
 | `manifest.webmanifest` | Add to home screen |
 | `icon.svg` | App icon |
 | `.github/workflows/pages.yml` | Publishes the live GitHub Pages site |
+| `tests/classify.test.mjs` | GCS and category name matching |
+| `tests/shared-hardware.test.mjs` | Same-origin cache helpers |
 
 ## Run locally
 
 The live company list is still used. You only need a static file server:
 
 ```bash
+cd ~/Updating-hardware
 python3 -m http.server 43141
 ```
 
 Then open http://127.0.0.1:43141 on a phone or in a browser.
 
-Same-origin cache helpers: `node tests/shared-hardware.test.mjs`
+```bash
+node tests/classify.test.mjs
+node tests/shared-hardware.test.mjs
+```
+
+## Update the live site
+
+On tectivePC, from the existing clone (do not clone again if `~/Updating-hardware` is already there):
+
+```bash
+cd ~/Updating-hardware
+git fetch origin
+git checkout main
+git pull origin main
+```
+
+Change the files, then:
+
+```bash
+git add -A
+git commit -m "Describe the change."
+git push origin main
+```
+
+GitHub Actions **Deploy site** publishes https://tectivejk.github.io/Updating-hardware/
 
 ## Remotes
 
 - **Always-live site:** https://tectivejk.github.io/Updating-hardware/
 - **GitHub:** https://github.com/TectiveJK/Updating-hardware
+- **Fleet:** https://tectivejk.github.io/Field-Test-Operations-Dashboard./
 - **GitLab:** https://git.tective.nl/JohnKokotinis/Updating-hardware.git

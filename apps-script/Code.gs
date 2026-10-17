@@ -302,6 +302,7 @@ function appendLog_(entry) {
 
 function classify_(name) {
   const n = name.toLowerCase();
+  if (n.indexOf('gcs') !== -1) return 'gcs';
   if (n.indexOf('battery') !== -1) return 'battery';
   if (n.indexOf('rotator') !== -1) return 'rotator';
   if (n.indexOf('hive') !== -1 || n.indexOf('skyfence') !== -1) return 'hive';

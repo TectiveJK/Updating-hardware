@@ -233,7 +233,8 @@
       { id: 'drone', label: 'Drones' },
       { id: 'battery', label: 'Batteries' },
       { id: 'hive', label: 'Hive' },
-      { id: 'rotator', label: 'Rotator' }
+      { id: 'rotator', label: 'Rotator' },
+      { id: 'gcs', label: 'GCS' }
     ];
     const STARTING_ITEMS = [
       { name: 'refly-ibb-010', location: 'In factory downstairs', person: '', note: '', gimbal: 'On Drone', type: 'drone' },
@@ -258,7 +259,10 @@
       { name: 'battery 43', location: 'testing', person: '', note: 'Battery port flight testing with drone 32', gimbal: '', type: 'battery' },
       { name: 'battery 17', location: 'Out of service', person: '', note: '', gimbal: '', type: 'battery' },
       { name: 'battery 62', location: 'In factory downstairs', person: '', note: '', gimbal: '', type: 'battery' },
-      { name: 'rotator 25', location: 'In factory downstairs', person: '', note: 'without dish and antenna cone', gimbal: '', type: 'rotator' }
+      { name: 'rotator 25', location: 'In factory downstairs', person: '', note: 'without dish and antenna cone', gimbal: '', type: 'rotator' },
+      { name: 'GCS-001', location: 'In office upstairs', person: '', note: '', gimbal: '', type: 'gcs' },
+      { name: 'GCS-004', location: 'In factory downstairs', person: '', note: '', gimbal: '', type: 'gcs' },
+      { name: 'GCS-005', location: 'In office upstairs', person: '', note: '', gimbal: '', type: 'gcs' }
     ];
 
     const STORE_KEY = 'hw_items';
@@ -325,6 +329,7 @@
 
     function classify(name) {
       const n = String(name || '').toLowerCase();
+      if (n.indexOf('gcs') !== -1) return 'gcs';
       if (n.indexOf('battery') !== -1) return 'battery';
       if (n.indexOf('rotator') !== -1) return 'rotator';
       if (n.indexOf('hive') !== -1 || n.indexOf('skyfence') !== -1) return 'hive';
@@ -337,7 +342,11 @@
     }
 
     function visibleItems(items) {
-      return (items || []).filter((it) => !isDeletedItem(it));
+      return (items || []).filter((it) => !isDeletedItem(it)).map((it) => {
+        const item = Object.assign({}, it);
+        item.type = classify(item.name);
+        return item;
+      });
     }
 
     function localApi(action, params) {
@@ -442,7 +451,7 @@
     function filtered() {
       const q = state.query.trim().toLowerCase();
       return state.items.filter((it) => {
-        if (state.filter !== 'all' && it.type !== state.filter) return false;
+        if (state.filter !== 'all' && classify(it.name) !== state.filter) return false;
         if (!q) return true;
         return [it.name, it.location, it.person, it.note].join(' ').toLowerCase().indexOf(q) !== -1;
       });
