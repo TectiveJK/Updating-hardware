@@ -6,7 +6,20 @@ Phone page for Tective. Anyone can add, rename, move, or delete hardware. **Ever
 
 This URL stays online. It does not go down when you close your laptop. Open it on a phone, or add it to the home screen.
 
-When someone changes a name or location, or deletes an item, other phones show it from the company Google Sheet (within about 15 seconds, or when they reopen the page).
+When someone changes a name or location, or deletes an item, other phones show it from the company Google Sheet (within about 8 seconds, or when they reopen the page).
+
+The [Field Test Operations Dashboard](https://tectivejk.github.io/Field-Test-Operations-Dashboard./) **Fleet** page uses this same list. Change a location here and Fleet updates; change it on Fleet and this app updates. On GitHub Pages they also share a same-origin cache, so the other tab updates immediately.
+
+Fleet 0.2.19 is in `field-test-operations-dashboard-0.2.19.patch`. In that repo:
+
+```bash
+git clone https://github.com/TectiveJK/Field-Test-Operations-Dashboard..git
+cd Field-Test-Operations-Dashboard.
+git apply path/to/field-test-operations-dashboard-0.2.19.patch
+git push origin main
+```
+
+GitHub Actions then publishes Fleet. Optional: paste `apps-script/Code.gs` into the spreadsheet Apps Script and deploy if you want looser name matching on the sheet itself.
 
 ## Important: nobody needs a Google login
 
@@ -119,12 +132,25 @@ The live phone app already deletes items from the company list. To also erase th
 | File | Purpose |
 | --- | --- |
 | `index.html` | Phone page (search, update, add, rename, delete) |
+| `shared-hardware.js` | Same-origin cache so Fleet and this app update each other immediately |
 | `config.js` | Shared-list URL (Apps Script `/exec`) |
 | `apps-script/Code.gs` | Reads/writes/renames/deletes rows on the Google Sheet |
 | `apps-script/Index.html` | Same phone page, for Apps Script |
 | `manifest.webmanifest` | Add to home screen |
 | `icon.svg` | App icon |
 | `.github/workflows/pages.yml` | Publishes the live GitHub Pages site |
+
+## Run locally
+
+The live company list is still used. You only need a static file server:
+
+```bash
+python3 -m http.server 43141
+```
+
+Then open http://127.0.0.1:43141 on a phone or in a browser.
+
+Same-origin cache helpers: `node tests/shared-hardware.test.mjs`
 
 ## Remotes
 

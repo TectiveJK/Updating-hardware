@@ -172,6 +172,54 @@
 <body>
   <div id="app" class="screen"></div>
   <script src="config.js"></script>
+  <script src="shared-hardware.js"></script>
+  <script>
+    if (!window.TectiveHardwareShare) {
+      (function (root) {
+        var KEY = 'tective-shared-hardware-v1';
+        var CHANNEL = 'tective-hardware-locations';
+        var channel = null;
+        function read() {
+          try {
+            var raw = root.localStorage.getItem(KEY);
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            if (!parsed || parsed.kind !== 'tective-shared-hardware' || !Array.isArray(parsed.items)) return null;
+            return parsed;
+          } catch (err) { return null; }
+        }
+        function write(items, source) {
+          var payload = {
+            kind: 'tective-shared-hardware',
+            v: 1,
+            updatedAt: new Date().toISOString(),
+            source: source || 'locator',
+            items: items || []
+          };
+          try { root.localStorage.setItem(KEY, JSON.stringify(payload)); } catch (err) {}
+          try {
+            if (!channel) channel = new root.BroadcastChannel(CHANNEL);
+            channel.postMessage(payload);
+          } catch (err) {}
+          return payload;
+        }
+        function listen(onItems) {
+          function handle(parsed) {
+            if (parsed && parsed.kind === 'tective-shared-hardware' && Array.isArray(parsed.items)) onItems(parsed.items, parsed);
+          }
+          root.addEventListener('storage', function (event) {
+            if (event.key !== KEY || !event.newValue) return;
+            try { handle(JSON.parse(event.newValue)); } catch (err) {}
+          });
+          try {
+            channel = new root.BroadcastChannel(CHANNEL);
+            channel.onmessage = function (event) { handle(event.data); };
+          } catch (err) {}
+        }
+        root.TectiveHardwareShare = { KEY: KEY, CHANNEL: CHANNEL, read: read, write: write, listen: listen };
+      })(window);
+    }
+  </script>
   <script>
     const LOCATIONS = [
       'In factory downstairs',
@@ -214,6 +262,7 @@
     ];
 
     const STORE_KEY = 'hw_items';
+    const SHARE = window.TectiveHardwareShare;
     const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3KiLyly5nRN7-y9iyJvL-z6xLpJKtNH02faJ4NeH1j0BvYUhlbvUVOXqckLtIIGqcuw/exec';
     const state = {
       name: localStorage.getItem('hw_name') || '',
@@ -419,6 +468,7 @@
         const changed = JSON.stringify(state.items) !== JSON.stringify(next);
         state.items = next;
         state.shared = isShared();
+        if (SHARE && SHARE.write) SHARE.write(next, 'locator');
         const target = openName || (!silent && wantedItem());
         if (target) {
           const found = state.items.find((it) => it.name.toLowerCase() === target.toLowerCase());
@@ -427,7 +477,14 @@
           render();
         }
       } catch (err) {
-        if (!silent) {
+        const shared = SHARE && SHARE.read ? SHARE.read() : null;
+        const sharedItems = shared && Array.isArray(shared.items) ? visibleItems(shared.items) : [];
+        if (sharedItems.length && (!state.items.length || silent)) {
+          state.items = sharedItems;
+          state.shared = true;
+          if (!silent) state.error = '';
+          render();
+        } else if (!silent) {
           state.error = (err && err.message) || String(err);
           if (!state.items.length) {
             state.error = 'Could not load hardware. You do not need a Google login. Check the connection and tap Retry.';
@@ -512,6 +569,7 @@
         const idx = state.items.findIndex((it) => it.name.toLowerCase() === lookFor || it.name.toLowerCase() === hardwareName.toLowerCase());
         if (idx !== -1) state.items[idx] = saved;
         else state.items.unshift(saved);
+        if (SHARE && SHARE.write) SHARE.write(visibleItems(state.items), 'locator');
         state.selected = null;
         state.editingName = false;
         toast(adding ? 'Added ' + hardwareName : (renamed ? 'Renamed to ' + hardwareName : 'Updated ' + hardwareName));
@@ -542,6 +600,7 @@
         });
         if (!res || res.ok === false) throw new Error((res && res.error) || 'Delete failed.');
         state.items = state.items.filter((it) => it.name.toLowerCase() !== hardwareName.toLowerCase());
+        if (SHARE && SHARE.write) SHARE.write(visibleItems(state.items), 'locator');
         state.selected = null;
         state.editingName = false;
         toast('Deleted ' + hardwareName);
@@ -716,13 +775,26 @@
       if (state.toast) root.appendChild($('div', { class: 'toast', text: state.toast }));
     }
 
+    const bootShared = SHARE && SHARE.read ? SHARE.read() : null;
+    if (bootShared && bootShared.items && bootShared.items.length) {
+      state.items = visibleItems(bootShared.items);
+      state.shared = true;
+      render();
+    }
     loadItems();
     setInterval(function () {
       if (document.visibilityState === 'visible') loadItems(null, true);
-    }, 15000);
+    }, 8000);
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible') loadItems(null, true);
     });
+    if (SHARE && SHARE.listen) {
+      SHARE.listen(function (items) {
+        state.items = visibleItems(items);
+        state.shared = true;
+        render();
+      });
+    }
   </script>
 </body>
 </html>

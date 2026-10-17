@@ -236,17 +236,29 @@ function readItems() {
   return items;
 }
 
+function normalizeName_(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/\s*\([^)]*\)/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
 function findRow(sheet, name) {
   const last = sheet.getLastRow();
   if (last < DATA_START_ROW) return 0;
   const names = sheet.getRange(DATA_START_ROW, COL.name, last - DATA_START_ROW + 1, 1).getDisplayValues();
-  const wanted = name.toLowerCase();
+  const wanted = String(name || '').trim().toLowerCase();
+  const wantedNorm = normalizeName_(name);
+  var fuzzy = 0;
   for (var i = 0; i < names.length; i++) {
-    if (String(names[i][0] || '').trim().toLowerCase() === wanted) {
-      return DATA_START_ROW + i;
+    const current = String(names[i][0] || '').trim();
+    if (current.toLowerCase() === wanted) return DATA_START_ROW + i;
+    if (!fuzzy && wantedNorm && normalizeName_(current) === wantedNorm) {
+      fuzzy = DATA_START_ROW + i;
     }
   }
-  return 0;
+  return fuzzy;
 }
 
 function boundSpreadsheet() {
@@ -305,8 +317,14 @@ function isPlaceholder_(name) {
 }
 
 function jsonp(callback, obj) {
-  const name = String(callback || 'callback').replace(/[^\w$]/g, '') || 'callback';
+  const body = JSON.stringify(obj);
+  if (!callback) {
+    return ContentService
+      .createTextOutput(body)
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  const name = String(callback).replace(/[^\w$]/g, '') || 'callback';
   return ContentService
-    .createTextOutput(name + '(' + JSON.stringify(obj) + ')')
+    .createTextOutput(name + '(' + body + ')')
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }

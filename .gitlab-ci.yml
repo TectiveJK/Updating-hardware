@@ -2,7 +2,7 @@ pages:
   stage: deploy
   script:
     - mkdir -p public
-    - cp index.html config.js manifest.webmanifest icon.svg public/
+    - cp index.html config.js shared-hardware.js manifest.webmanifest icon.svg public/
   artifacts:
     paths:
       - public
