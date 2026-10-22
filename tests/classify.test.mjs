@@ -17,6 +17,7 @@ for (const file of files) {
   assert.match(html, /name: 'GCS-004'/, `${file} should include GCS-004`);
   assert.match(html, /name: 'GCS-005'/, `${file} should include GCS-005`);
   assert.match(html, /Belongs to drone/, `${file} should let gimbals pick a drone`);
+  assert.match(html, /attached to /, `${file} should show which drone a gimbal is attached to`);
 
   const match = html.match(/function classify\(name\) \{[\s\S]*?return 'other';\n    \}/);
   assert.ok(match, `${file} should define classify`);

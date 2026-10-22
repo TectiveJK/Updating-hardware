@@ -357,7 +357,46 @@
     function gimbalsForDrone(droneName) {
       const wanted = String(droneName || '').trim().toLowerCase();
       if (!wanted) return [];
-      return state.items.filter((it) => isGimbalName(it.name) && String(it.gimbal || '').trim().toLowerCase() === wanted);
+      return state.items.filter((it) => isGimbalName(it.name) && attachedDrone(it).toLowerCase() === wanted);
+    }
+
+    function isDroneGimbalStatus(value) {
+      const v = String(value || '').trim().toLowerCase();
+      return v === 'on drone' || v === 'removed';
+    }
+
+    function attachedDroneFromNote(note) {
+      const line = String(note || '').split('\n')[0] || '';
+      const match = line.match(/^Attached to:\s*(.+?)\s*$/i);
+      return match ? String(match[1] || '').trim() : '';
+    }
+
+    function noteWithoutAttachment(note) {
+      const lines = String(note || '').split('\n');
+      if (!/^Attached to:\s*/i.test(lines[0] || '')) return String(note || '');
+      lines.shift();
+      if (lines[0] === '') lines.shift();
+      return lines.join('\n');
+    }
+
+    function noteWithAttachment(note, drone) {
+      const body = noteWithoutAttachment(note);
+      const name = String(drone || '').trim();
+      if (!name || isDroneGimbalStatus(name)) return body;
+      return body ? ('Attached to: ' + name + '\n' + body) : ('Attached to: ' + name);
+    }
+
+    function attachedDrone(item) {
+      if (!item || classify(item.name) !== 'gimbal') return '';
+      const fromField = String(item.gimbal || '').trim();
+      if (fromField && !isDroneGimbalStatus(fromField)) return fromField;
+      return attachedDroneFromNote(item.note);
+    }
+
+    function itemHeading(item) {
+      const drone = attachedDrone(item);
+      if (!drone) return item.name;
+      return item.name + ' attached to ' + drone;
     }
 
     function isDeletedItem(it) {
@@ -368,6 +407,10 @@
       return (items || []).filter((it) => !isDeletedItem(it)).map((it) => {
         const item = Object.assign({}, it);
         item.type = classify(item.name);
+        if (item.type === 'gimbal') {
+          const drone = attachedDrone(item);
+          if (drone) item.gimbal = drone;
+        }
         return item;
       });
     }
@@ -552,6 +595,11 @@
       state.selected = Object.assign({ originalName: item.name }, item);
       state.customLocation = LOCATIONS.indexOf(item.location) === -1 ? item.location : '';
       if (!state.selected.person && state.name) state.selected.person = state.name;
+      if (isGimbalName(item.name)) {
+        const drone = attachedDrone(item);
+        if (drone) state.selected.gimbal = drone;
+        state.selected.note = noteWithoutAttachment(item.note);
+      }
       state.editingName = false;
       state.error = '';
       render();
@@ -603,12 +651,18 @@
         if (isGimbalName(hardwareName)) {
           payload.gimbal = item.gimbal || '';
           payload.setGimbal = '1';
+          payload.note = noteWithAttachment(item.note, item.gimbal);
         }
         const res = await callApi(adding ? 'add' : 'update', payload);
         if (!res || res.ok === false) throw new Error((res && res.error) || 'Save failed.');
         localStorage.setItem('hw_name', item.person || '');
         state.name = item.person || '';
         const saved = Object.assign({ isNew: false }, res.item || item, { name: hardwareName });
+        if (isGimbalName(hardwareName)) {
+          saved.gimbal = item.gimbal || attachedDrone(saved);
+          saved.note = payload.note;
+          saved.type = 'gimbal';
+        }
         const lookFor = originalName.toLowerCase();
         const idx = state.items.findIndex((it) => it.name.toLowerCase() === lookFor || it.name.toLowerCase() === hardwareName.toLowerCase());
         if (idx !== -1) state.items[idx] = saved;
@@ -694,10 +748,10 @@
         $('div', { class: 'list' }, items.length ? items.map((it) =>
           $('button', { class: 'item', on: { click: () => openEditor(it) } }, [
             $('div', { class: 'type', text: it.type }),
-            $('b', { text: it.name }),
+            $('b', { text: itemHeading(it) }),
             $('div', { class: 'meta' }, [
               $('span', { class: 'loc', text: it.location || 'No location' }),
-              $('span', { text: it.type === 'gimbal' && it.gimbal ? ' · ' + it.gimbal : (it.person ? ' · ' + it.person : '') })
+              $('span', { text: it.person ? ' · ' + it.person : '' })
             ])
           ])
         ) : [$('div', { class: 'empty', text: state.loading ? 'Loading…' : (state.error ? 'Hardware did not load.' : 'No matching hardware.') })]),
@@ -790,7 +844,7 @@
                   nameInput
                 ])
               : $('div', { class: 'name-row' }, [
-                  $('h2', { text: item.name }),
+                  $('h2', { text: itemHeading(item) }),
                   $('button', {
                     class: 'btn secondary small',
                     type: 'button',

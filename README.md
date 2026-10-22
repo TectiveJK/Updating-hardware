@@ -16,7 +16,7 @@ The chips at the top filter the list:
 | --- | --- |
 | **All** | Every item |
 | **Drones** | ReFly and IBB airframes |
-| **Gimbal** | Camera gimbals, including which drone each one belongs to |
+| **Gimbal** | Camera gimbals. The list shows **Gimbal-028 attached to refly-sf-031** when a drone is chosen |
 | **Batteries** | Battery packs |
 | **Hive** | SkyHive / hive |
 | **Rotator** | Ground rotator |
@@ -61,7 +61,7 @@ Then **Deploy**. People still should not log in.
 - Filter by **All**, **Drones**, **Gimbal**, **Batteries**, **Hive**, **Rotator**, or **GCS**
 - Search drones, gimbals, batteries, hive, rotators, and GCS
 - Update location, who has it, and a short note
-- For a gimbal, choose which drone it belongs to
+- For a gimbal, choose which drone it belongs to. The card then reads **Gimbal-028 attached to refly-sf-031**
 - Tap **Edit name** (next to the item name) to rename hardware
 - Tap **Delete** (under **Save location**) to remove hardware from the list
 - Tap **Add hardware** to put a new item on the list
@@ -71,7 +71,7 @@ Then **Deploy**. People still should not log in.
 1. Open https://tectivejk.github.io/Updating-hardware/
 2. Search for an item, tap a category, **or** tap **Add hardware**.
 3. For a new item, type a name (for example `refly-sf-034`, `battery 121`, `gimbal-sf-034`, or `GCS-006`).
-4. Choose a location, type your name, **Save location**. For a gimbal, also pick the drone it belongs to.
+4. Choose a location, type your name, **Save location**. For a gimbal, also pick the drone it belongs to. The list then shows the gimbal **attached to** that drone.
 5. To rename: open the item → tap **Edit name** next to the title → type the new name → **Save location**.
 6. To remove it: open the item → tap **Delete** under **Save location** → confirm.
 
@@ -109,9 +109,9 @@ The phone page calls an Apps Script web app. That script **runs as you** and rea
 | C | Location |
 | D | Gimbal status on a drone, or the drone a gimbal belongs to |
 | E | Person responsible |
-| F | Note |
+| F | Note (`Attached to: refly-sf-031` is stored here for gimbals so the drone link is visible even before a script redeploy) |
 
-For a gimbal, column D is the drone it belongs to. Deploy the latest [`apps-script/Code.gs`](apps-script/Code.gs) so that link is saved with the location.
+For a gimbal, the list title is **name attached to drone**. Column D is the drone it belongs to. The same drone is also written at the top of the note so it still shows after a refresh. Deploy the latest [`apps-script/Code.gs`](apps-script/Code.gs) so column D is saved too.
 
 Data starts at row 5. New hardware is added as a new row. Rename changes column B. Delete hides the item (location `Deleted`) or, after you deploy the latest `Code.gs`, removes the row. Rows marked `Deleted` never appear in the app. Each save also appends a line to a hidden **Location Log** tab.
 
