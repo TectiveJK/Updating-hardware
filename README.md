@@ -16,12 +16,13 @@ The chips at the top filter the list:
 | --- | --- |
 | **All** | Every item |
 | **Drones** | ReFly and IBB airframes |
+| **Gimbal** | Camera gimbals, including which drone each one belongs to |
 | **Batteries** | Battery packs |
 | **Hive** | SkyHive / hive |
 | **Rotator** | Ground rotator |
 | **GCS** | Ground control stations: **GCS-001**, **GCS-004**, **GCS-005** |
 
-A name that contains `gcs` is filed under **GCS**. New GCS units added later show up there automatically.
+A name that contains `gcs` is filed under **GCS**. A name that contains `gimbal` is filed under **Gimbal**. New units added later show up in those chips automatically.
 
 ## Fleet
 
@@ -57,9 +58,10 @@ Then **Deploy**. People still should not log in.
 
 ## What people can do
 
-- Filter by **All**, **Drones**, **Batteries**, **Hive**, **Rotator**, or **GCS**
-- Search drones, batteries, hive, rotators, and GCS
+- Filter by **All**, **Drones**, **Gimbal**, **Batteries**, **Hive**, **Rotator**, or **GCS**
+- Search drones, gimbals, batteries, hive, rotators, and GCS
 - Update location, who has it, and a short note
+- For a gimbal, choose which drone it belongs to
 - Tap **Edit name** (next to the item name) to rename hardware
 - Tap **Delete** (under **Save location**) to remove hardware from the list
 - Tap **Add hardware** to put a new item on the list
@@ -68,8 +70,8 @@ Then **Deploy**. People still should not log in.
 
 1. Open https://tectivejk.github.io/Updating-hardware/
 2. Search for an item, tap a category, **or** tap **Add hardware**.
-3. For a new item, type a name (for example `refly-sf-034`, `battery 121`, or `GCS-006`).
-4. Choose a location, type your name, **Save location**.
+3. For a new item, type a name (for example `refly-sf-034`, `battery 121`, `gimbal-sf-034`, or `GCS-006`).
+4. Choose a location, type your name, **Save location**. For a gimbal, also pick the drone it belongs to.
 5. To rename: open the item → tap **Edit name** next to the title → type the new name → **Save location**.
 6. To remove it: open the item → tap **Delete** under **Save location** → confirm.
 
@@ -105,9 +107,11 @@ The phone page calls an Apps Script web app. That script **runs as you** and rea
 | --- | --- |
 | B | Item name |
 | C | Location |
-| D | Gimbal |
+| D | Gimbal status on a drone, or the drone a gimbal belongs to |
 | E | Person responsible |
 | F | Note |
+
+For a gimbal, column D is the drone it belongs to. Deploy the latest [`apps-script/Code.gs`](apps-script/Code.gs) so that link is saved with the location.
 
 Data starts at row 5. New hardware is added as a new row. Rename changes column B. Delete hides the item (location `Deleted`) or, after you deploy the latest `Code.gs`, removes the row. Rows marked `Deleted` never appear in the app. Each save also appends a line to a hidden **Location Log** tab.
 
@@ -151,7 +155,7 @@ The live phone app already deletes items from the company list. To also erase th
 | `manifest.webmanifest` | Add to home screen |
 | `icon.svg` | App icon |
 | `.github/workflows/pages.yml` | Publishes the live GitHub Pages site |
-| `tests/classify.test.mjs` | GCS and category name matching |
+| `tests/classify.test.mjs` | GCS, gimbal, and category name matching |
 | `tests/shared-hardware.test.mjs` | Same-origin cache helpers |
 
 ## Run locally

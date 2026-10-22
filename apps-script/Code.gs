@@ -49,6 +49,7 @@ function updateItem(payload) {
 
   const person = String(payload.person || '').trim();
   const note = String(payload.note || '').trim().slice(0, 500);
+  const hasGimbal = String(payload.setGimbal || '') === '1';
 
   const lock = LockService.getDocumentLock();
   lock.waitLock(15000);
@@ -73,6 +74,7 @@ function updateItem(payload) {
     sheet.getRange(row, COL.location).setValue(location);
     sheet.getRange(row, COL.person).setValue(person);
     sheet.getRange(row, COL.note).setValue(note);
+    if (hasGimbal) sheet.getRange(row, COL.gimbal).setValue(String(payload.gimbal || '').trim());
 
     appendLog_({
       item: finalName,
@@ -91,7 +93,7 @@ function updateItem(payload) {
         location: location,
         person: person,
         note: note,
-        gimbal: String(sheet.getRange(row, COL.gimbal).getDisplayValue() || ''),
+        gimbal: hasGimbal ? String(payload.gimbal || '').trim() : String(sheet.getRange(row, COL.gimbal).getDisplayValue() || ''),
         type: classify_(finalName)
       }
     };
@@ -144,6 +146,7 @@ function addItem(payload) {
 
   const person = String(payload.person || '').trim();
   const note = String(payload.note || '').trim().slice(0, 500);
+  const gimbal = String(payload.gimbal || '').trim();
 
   const lock = LockService.getDocumentLock();
   lock.waitLock(15000);
@@ -151,7 +154,7 @@ function addItem(payload) {
     const sheet = statusSheet();
     if (findRow(sheet, name)) return { ok: false, error: name + ' is already on the list.' };
 
-    sheet.appendRow(['', name, location, '', person, note]);
+    sheet.appendRow(['', name, location, gimbal, person, note]);
 
     appendLog_({
       item: name,
@@ -170,7 +173,7 @@ function addItem(payload) {
         location: location,
         person: person,
         note: note,
-        gimbal: '',
+        gimbal: gimbal,
         type: classify_(name)
       }
     };
@@ -188,7 +191,9 @@ function handleAction(p) {
         newName: p.newName,
         location: p.location,
         person: p.person,
-        note: p.note
+        note: p.note,
+        gimbal: p.gimbal,
+        setGimbal: p.setGimbal
       });
     }
     if (p.action === 'add') {
@@ -196,7 +201,8 @@ function handleAction(p) {
         item: p.item,
         location: p.location,
         person: p.person,
-        note: p.note
+        note: p.note,
+        gimbal: p.gimbal
       });
     }
     if (p.action === 'delete') {
@@ -305,6 +311,7 @@ function classify_(name) {
   if (n.indexOf('gcs') !== -1) return 'gcs';
   if (n.indexOf('battery') !== -1) return 'battery';
   if (n.indexOf('rotator') !== -1) return 'rotator';
+  if (n.indexOf('gimbal') !== -1) return 'gimbal';
   if (n.indexOf('hive') !== -1 || n.indexOf('skyfence') !== -1) return 'hive';
   if (n.indexOf('refly') !== -1 || n.indexOf('drone') !== -1 || n.indexOf('ibb') !== -1) return 'drone';
   return 'other';

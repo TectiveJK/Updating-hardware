@@ -150,10 +150,12 @@
       border: 1px solid var(--line); background: var(--card);
     }
     .loc-btn.on { border-color: var(--accent); background: #16382c; color: var(--accent); font-weight: 700; }
-    textarea, input.box {
+    textarea, input.box, select.box {
       width: 100%; border: 1px solid var(--line); background: var(--bg);
       border-radius: 12px; padding: 12px; outline: none;
     }
+    select.box { min-height: var(--tap); }
+    option { background: var(--bg); color: var(--text); }
     textarea { min-height: 72px; resize: vertical; }
     .toast {
       position: fixed; left: 16px; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom));
@@ -231,6 +233,7 @@
     const FILTERS = [
       { id: 'all', label: 'All' },
       { id: 'drone', label: 'Drones' },
+      { id: 'gimbal', label: 'Gimbal' },
       { id: 'battery', label: 'Batteries' },
       { id: 'hive', label: 'Hive' },
       { id: 'rotator', label: 'Rotator' },
@@ -246,6 +249,8 @@
       { name: 'refly-sf-031', location: 'In office upstairs', person: '', note: 'Location not determined', gimbal: 'On Drone', type: 'drone' },
       { name: 'refly-sf-032', location: 'testing', person: '', note: 'USED FOR BATTERY PORT TESTING', gimbal: 'Removed', type: 'drone' },
       { name: 'refly-sf-033', location: 'In office upstairs', person: '', note: '', gimbal: 'On Drone', type: 'drone' },
+      { name: 'gimbal-sf-007', location: 'In office upstairs', person: '', note: '', gimbal: 'refly-sf-007', type: 'gimbal' },
+      { name: 'gimbal-sf-032', location: 'In factory downstairs', person: '', note: '', gimbal: 'refly-sf-032', type: 'gimbal' },
       { name: 'battery 96 (004)', location: 'testing', person: '', note: '', gimbal: '', type: 'battery' },
       { name: 'battery 63 (004)', location: 'In hive', person: '', note: '', gimbal: '', type: 'battery' },
       { name: 'battery 3 (004)', location: 'testing', person: '', note: '', gimbal: '', type: 'battery' },
@@ -332,9 +337,27 @@
       if (n.indexOf('gcs') !== -1) return 'gcs';
       if (n.indexOf('battery') !== -1) return 'battery';
       if (n.indexOf('rotator') !== -1) return 'rotator';
+      if (n.indexOf('gimbal') !== -1) return 'gimbal';
       if (n.indexOf('hive') !== -1 || n.indexOf('skyfence') !== -1) return 'hive';
       if (n.indexOf('refly') !== -1 || n.indexOf('drone') !== -1 || n.indexOf('ibb') !== -1) return 'drone';
       return 'other';
+    }
+
+    function isGimbalName(name) {
+      return classify(name) === 'gimbal';
+    }
+
+    function droneNames() {
+      return state.items
+        .filter((it) => classify(it.name) === 'drone')
+        .map((it) => it.name)
+        .sort((a, b) => String(a).toLowerCase().localeCompare(String(b).toLowerCase()));
+    }
+
+    function gimbalsForDrone(droneName) {
+      const wanted = String(droneName || '').trim().toLowerCase();
+      if (!wanted) return [];
+      return state.items.filter((it) => isGimbalName(it.name) && String(it.gimbal || '').trim().toLowerCase() === wanted);
     }
 
     function isDeletedItem(it) {
@@ -363,7 +386,7 @@
           location: params.location,
           person: params.person || '',
           note: params.note || '',
-          gimbal: '',
+          gimbal: params.gimbal || '',
           type: classify(name)
         };
         items.push(item);
@@ -391,6 +414,7 @@
       item.location = params.location;
       item.person = params.person;
       item.note = params.note;
+      if (params.gimbal != null) item.gimbal = params.gimbal;
       saveStore(items);
       return Promise.resolve({ ok: true, item: Object.assign({}, item) });
     }
@@ -453,7 +477,7 @@
       return state.items.filter((it) => {
         if (state.filter !== 'all' && classify(it.name) !== state.filter) return false;
         if (!q) return true;
-        return [it.name, it.location, it.person, it.note].join(' ').toLowerCase().indexOf(q) !== -1;
+        return [it.name, it.location, it.person, it.note, it.gimbal].join(' ').toLowerCase().indexOf(q) !== -1;
       });
     }
 
@@ -546,11 +570,17 @@
       const personEl = document.querySelector('input[placeholder="Your name"]');
       const noteEl = document.querySelector('textarea[placeholder="Optional note"]');
       const otherEl = document.querySelector('input[placeholder="Other location"]');
+      const droneEl = document.querySelector('select[data-field="belongs-to-drone"]');
+      const droneOtherEl = document.querySelector('input[data-field="belongs-to-drone-other"]');
       if (nameEl) item.name = nameEl.value;
       if (personEl) item.person = personEl.value;
       if (noteEl) item.note = noteEl.value;
       if (otherEl && otherEl.value.trim() && LOCATIONS.indexOf(item.location) === -1) {
         item.location = otherEl.value.trim();
+      }
+      if (isGimbalName(item.name)) {
+        const typedDrone = droneOtherEl && droneOtherEl.value.trim();
+        item.gimbal = typedDrone || (droneEl && droneEl.value) || '';
       }
       const hardwareName = (item.name || '').trim();
       if (!hardwareName) { state.error = 'Type a hardware name.'; render(); return; }
@@ -563,13 +593,18 @@
         const adding = !!item.isNew;
         const originalName = (item.originalName || hardwareName).trim();
         const renamed = !adding && hardwareName.toLowerCase() !== originalName.toLowerCase();
-        const res = await callApi(adding ? 'add' : 'update', {
+        const payload = {
           item: adding ? hardwareName : originalName,
           newName: renamed ? hardwareName : '',
           location: location,
           person: item.person || '',
           note: item.note || ''
-        });
+        };
+        if (isGimbalName(hardwareName)) {
+          payload.gimbal = item.gimbal || '';
+          payload.setGimbal = '1';
+        }
+        const res = await callApi(adding ? 'add' : 'update', payload);
         if (!res || res.ok === false) throw new Error((res && res.error) || 'Save failed.');
         localStorage.setItem('hw_name', item.person || '');
         state.name = item.person || '';
@@ -662,7 +697,7 @@
             $('b', { text: it.name }),
             $('div', { class: 'meta' }, [
               $('span', { class: 'loc', text: it.location || 'No location' }),
-              $('span', { text: it.person ? ' · ' + it.person : '' })
+              $('span', { text: it.type === 'gimbal' && it.gimbal ? ' · ' + it.gimbal : (it.person ? ' · ' + it.person : '') })
             ])
           ])
         ) : [$('div', { class: 'empty', text: state.loading ? 'Loading…' : (state.error ? 'Hardware did not load.' : 'No matching hardware.') })]),
@@ -674,18 +709,59 @@
       ]);
     }
 
+    function renderDronePicker(item) {
+      const drones = droneNames();
+      const assigned = String(item.gimbal || '').trim();
+      const known = drones.indexOf(assigned) !== -1;
+      const select = $('select', { class: 'box', 'data-field': 'belongs-to-drone' });
+      select.appendChild($('option', { value: '', text: 'Not assigned' }));
+      drones.forEach((name) => {
+        select.appendChild($('option', { value: name, text: name }));
+      });
+      select.value = known ? assigned : '';
+      select.addEventListener('change', () => {
+        item.gimbal = select.value;
+        const other = document.querySelector('input[data-field="belongs-to-drone-other"]');
+        if (other && select.value) other.value = '';
+      });
+      const other = $('input', {
+        class: 'box',
+        'data-field': 'belongs-to-drone-other',
+        placeholder: 'Or type a drone name',
+        value: known ? '' : assigned,
+        autocapitalize: 'off'
+      });
+      other.addEventListener('input', () => {
+        item.gimbal = other.value.trim() || select.value;
+      });
+      return $('div', { class: 'field', 'data-field': 'belongs-to-drone-wrap' }, [
+        $('label', { text: 'Belongs to drone' }),
+        select,
+        $('div', { style: 'height:8px' }),
+        other
+      ]);
+    }
+
     function renderEditor() {
       const item = state.selected;
       const adding = !!item.isNew;
+      const gimbalItem = isGimbalName(item.name);
       const nameInput = $('input', {
         class: 'box',
-        placeholder: 'e.g. refly-sf-034 or battery 121',
+        placeholder: 'e.g. refly-sf-034, battery 121, or gimbal-sf-034',
         value: item.name || '',
         autocapitalize: 'off'
       });
       nameInput.addEventListener('input', () => {
         item.name = nameInput.value;
         item.type = classify(item.name);
+        const picker = document.querySelector('[data-field="belongs-to-drone-wrap"]');
+        if (picker) {
+          const show = isGimbalName(item.name);
+          picker.style.display = show ? '' : 'none';
+          if (show) picker.removeAttribute('hidden');
+          else picker.setAttribute('hidden', '');
+        }
       });
       const person = $('input', { class: 'box', placeholder: 'Your name', value: item.person || '' });
       person.addEventListener('input', () => { item.person = person.value; });
@@ -727,7 +803,16 @@
                     } }
                   }, [$('span', { text: 'Edit name' })])
                 ])),
-          !adding && item.gimbal ? $('div', { class: 'sub', text: 'Gimbal: ' + item.gimbal }) : null,
+          (function () {
+            const picker = renderDronePicker(item);
+            picker.style.display = gimbalItem ? '' : 'none';
+            if (!gimbalItem) picker.setAttribute('hidden', '');
+            return picker;
+          })(),
+          !gimbalItem && !adding && item.gimbal ? $('div', { class: 'sub', text: 'Gimbal: ' + item.gimbal }) : null,
+          !gimbalItem && !adding && classify(item.name) === 'drone' && gimbalsForDrone(item.name).length
+            ? $('div', { class: 'sub', text: 'Gimbal hardware: ' + gimbalsForDrone(item.name).map((g) => g.name + (g.location ? ' (' + g.location + ')' : '')).join(', ') })
+            : null,
           $('div', { class: 'field' }, [
             $('label', { text: 'Location' }),
             $('div', { class: 'locs' }, LOCATIONS.map((loc) =>
