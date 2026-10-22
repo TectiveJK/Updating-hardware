@@ -1,6 +1,6 @@
 # Hardware location updater
 
-Phone page for Tective. Anyone can add, rename, move, or delete hardware. **Everyone sees the same list.**
+Phone page for Tective. People sign in with their **Tective Google account**, then anyone on the company list can add, rename, move, or delete hardware. **Everyone sees the same list.**
 
 **Always-live link (share this):** https://tectivejk.github.io/Updating-hardware/
 
@@ -33,31 +33,56 @@ The [Field Test Operations Dashboard](https://tectivejk.github.io/Field-Test-Ope
 
 Both live sites talk to the same Google Sheet. On GitHub Pages they also share a same-origin cache (`shared-hardware.js`), so the other tab updates immediately. Other phones pick up a change within about 8 seconds, or when they reopen the page.
 
-## Important: nobody needs a Google login
+## Sign in (SSO)
 
-Do **not** open the spreadsheet. Do **not** share the Apps Script `/exec` link. Share **only** the GitHub Pages link above.
+The live page uses Google Single Sign-On. Only **@tective.nl** Google accounts can open the list.
 
-The app talks to the sheet as you (the owner). Other phones can list, add, rename, update, and delete hardware without your Google account, and without access to the planning spreadsheet.
+1. Open https://tectivejk.github.io/Updating-hardware/
+2. Tap **Sign in with Google**
+3. Choose your Tective account
 
-Keep the planning spreadsheet private. Do not share it with the whole company.
+Your name is filled in on **Who has it**. Tap **Sign out** in the header to switch accounts.
+
+Do **not** open the spreadsheet. Do **not** share the Apps Script `/exec` link. Share **only** the GitHub Pages link above. The spreadsheet stays private.
+
+### Turn SSO on (once)
+
+The sign-in button stays hidden until a Google Web client ID is in [`config.js`](config.js) **and** [`apps-script/Code.gs`](apps-script/Code.gs).
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Create (or pick) a project
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID**
+4. Application type: **Web application**
+5. Authorized JavaScript origins:
+   - `https://tectivejk.github.io`
+   - `http://127.0.0.1:43141`
+6. Create, copy the **Client ID**
+7. Put that value in `googleClientId` in [`config.js`](config.js) and in `GOOGLE_CLIENT_ID` in [`apps-script/Code.gs`](apps-script/Code.gs)
+8. Push to GitHub, then redeploy Apps Script (**Execute as: Me**, **Who has access: Anyone**)
+
+Keep **Who has access: Anyone**. That is not the login screen. The Tective Google sign-in is the button on this page. If you set the script to “Anyone with a Google account”, phones hit a Google wall and the list stays empty.
+
+The [Fleet](https://tectivejk.github.io/Field-Test-Operations-Dashboard./) page still uses the same company list without this sign-in. To also require a Tective token on every sheet request, set `REQUIRE_SSO` to `true` in `Code.gs` after Fleet can send one.
 
 ## If someone sees no hardware
 
-They are on the wrong link, an old home-screen icon, or a Google sign-in wall.
+They are on the wrong link, an old home-screen icon, a Google Sheets tab, or they signed in with a non-Tective account.
 
 1. Send them https://tectivejk.github.io/Updating-hardware/
 2. Ask them to open it in the normal phone browser (Safari or Chrome), not Google Sheets.
-3. If they added the app to the home screen earlier, delete that icon and add this link again.
+3. Sign in with an **@tective.nl** Google account.
+4. If they added the app to the home screen earlier, delete that icon and add this link again.
 
-If it is still empty, the Apps Script web app access is wrong. In the spreadsheet: **Extensions → Apps Script → Deploy → Manage deployments → Edit**:
+If it is still empty after sign-in, the Apps Script web app access is wrong. In the spreadsheet: **Extensions → Apps Script → Deploy → Manage deployments → Edit**:
 
 - Execute as: **Me**
 - Who has access: **Anyone** (not “Anyone with a Google account”, and not only Tective)
 
-Then **Deploy**. People still should not log in.
+Then **Deploy**.
 
 ## What people can do
 
+- Sign in with a Tective Google account (**@tective.nl**), and sign out from the header
 - Filter by **All**, **Drones**, **Gimbal**, **Batteries**, **Hive**, **Rotator**, or **GCS**
 - Search drones, gimbals, batteries, hive, rotators, and GCS
 - Update location, who has it, and a short note
@@ -68,14 +93,14 @@ Then **Deploy**. People still should not log in.
 
 ## Use it (everyone)
 
-1. Open https://tectivejk.github.io/Updating-hardware/
+1. Open https://tectivejk.github.io/Updating-hardware/ and sign in with Google.
 2. Search for an item, tap a category, **or** tap **Add hardware**.
 3. For a new item, type a name (for example `refly-sf-034`, `battery 121`, `gimbal-sf-034`, or `GCS-006`).
 4. Choose a location, type your name, **Save location**. For a gimbal, also pick the drone it belongs to. The list then shows the gimbal **attached to** that drone.
 5. To rename: open the item → tap **Edit name** next to the title → type the new name → **Save location**.
 6. To remove it: open the item → tap **Delete** under **Save location** → confirm.
 
-**Delete works without a Google login.** The app does **not** call Google’s `delete` action (that caused **Unknown action**). It updates the row’s location to `Deleted` and hides it on every phone.
+**Delete still works after you sign in.** The app does **not** call Google’s `delete` action (that caused **Unknown action**). It updates the row’s location to `Deleted` and hides it on every phone.
 
 If a phone still says **Unknown action**, it is on an old cached page:
 
@@ -147,15 +172,16 @@ The live phone app already deletes items from the company list. To also erase th
 
 | File | Purpose |
 | --- | --- |
-| `index.html` | Phone page (categories, search, update, add, rename, delete) |
+| `index.html` | Phone page (SSO, categories, search, update, add, rename, delete) |
 | `shared-hardware.js` | Same-origin cache so Fleet and this app update each other immediately |
-| `config.js` | Shared-list URL (Apps Script `/exec`) |
-| `apps-script/Code.gs` | Reads/writes/renames/deletes rows on the Google Sheet |
+| `config.js` | Shared-list URL (Apps Script `/exec`) and Google SSO client ID |
+| `apps-script/Code.gs` | Reads/writes/renames/deletes rows on the Google Sheet; verifies Tective Google sign-in tokens |
 | `apps-script/Index.html` | Same phone page, for Apps Script |
 | `manifest.webmanifest` | Add to home screen |
 | `icon.svg` | App icon |
 | `.github/workflows/pages.yml` | Publishes the live GitHub Pages site |
 | `tests/classify.test.mjs` | GCS, gimbal, and category name matching |
+| `tests/sso.test.mjs` | Tective Google sign-in domain checks |
 | `tests/shared-hardware.test.mjs` | Same-origin cache helpers |
 
 ## Run locally
@@ -171,6 +197,7 @@ Then open http://127.0.0.1:43141 on a phone or in a browser.
 
 ```bash
 node tests/classify.test.mjs
+node tests/sso.test.mjs
 node tests/shared-hardware.test.mjs
 ```
 

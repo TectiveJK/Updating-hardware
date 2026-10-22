@@ -12,6 +12,11 @@ const SPREADSHEET_ID = '1wd0kwOdgz8fdb54RBnoJgTuMjonhJb5pj0L0fBfC2vg';
 const STATUS_SHEET = 'Product Status';
 const LOG_SHEET = 'Location Log';
 const DATA_START_ROW = 5;
+const GOOGLE_CLIENT_ID = ''; // same Web client ID as config.js googleClientId
+const ALLOWED_EMAIL_DOMAINS = ['tective.nl'];
+// true = every list/add/update must include a Tective Google sign-in token.
+// Leave false so Fleet can still read/write the same list.
+const REQUIRE_SSO = false;
 const COL = {
   name: 2,      // B
   location: 3,  // C
@@ -34,12 +39,16 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-function listItems() {
+function listItems(payload) {
+  const auth = requireUser_(payload);
+  if (!auth.ok) return auth;
   return { ok: true, items: readItems() };
 }
 
 function updateItem(payload) {
   payload = payload || {};
+  const auth = requireUser_(payload);
+  if (!auth.ok) return auth;
   const name = String(payload.item || payload.name || '').trim();
   if (!name) return { ok: false, error: 'Pick an item first.' };
 
@@ -104,6 +113,8 @@ function updateItem(payload) {
 
 function deleteItem(payload) {
   payload = payload || {};
+  const auth = requireUser_(payload);
+  if (!auth.ok) return auth;
   const name = String(payload.item || payload.name || '').trim();
   if (!name) return { ok: false, error: 'Pick an item first.' };
 
@@ -137,6 +148,8 @@ function deleteItem(payload) {
 
 function addItem(payload) {
   payload = payload || {};
+  const auth = requireUser_(payload);
+  if (!auth.ok) return auth;
   const name = String(payload.item || payload.name || '').trim();
   if (!name) return { ok: false, error: 'Type a hardware name.' };
   if (isPlaceholder_(name)) return { ok: false, error: 'Use a real name, not a placeholder.' };
@@ -184,7 +197,7 @@ function addItem(payload) {
 
 function handleAction(p) {
   try {
-    if (p.action === 'list') return listItems();
+    if (p.action === 'list') return listItems(p);
     if (p.action === 'update') {
       return updateItem({
         item: p.item,
@@ -193,7 +206,8 @@ function handleAction(p) {
         person: p.person,
         note: p.note,
         gimbal: p.gimbal,
-        setGimbal: p.setGimbal
+        setGimbal: p.setGimbal,
+        idToken: p.idToken
       });
     }
     if (p.action === 'add') {
@@ -202,12 +216,14 @@ function handleAction(p) {
         location: p.location,
         person: p.person,
         note: p.note,
-        gimbal: p.gimbal
+        gimbal: p.gimbal,
+        idToken: p.idToken
       });
     }
     if (p.action === 'delete') {
       return deleteItem({
-        item: p.item
+        item: p.item,
+        idToken: p.idToken
       });
     }
     return { ok: false, error: 'Unknown action.' };
@@ -304,6 +320,62 @@ function appendLog_(entry) {
     entry.oldNote,
     entry.note
   ]);
+}
+
+function requireUser_(payload) {
+  payload = payload || {};
+  const token = String(payload.idToken || '').trim();
+  const clientId = String(GOOGLE_CLIENT_ID || '').trim();
+  const must = !!clientId && REQUIRE_SSO;
+  if (!token) {
+    if (must) return { ok: false, error: 'Sign in with your Tective Google account.' };
+    return { ok: true, user: null };
+  }
+  const user = verifyGoogleIdToken_(token);
+  if (!user) return { ok: false, error: 'Sign-in expired. Sign in again.' };
+  return { ok: true, user: user };
+}
+
+function tokenCacheKey_(token) {
+  const raw = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token);
+  var hex = '';
+  for (var i = 0; i < raw.length; i++) {
+    hex += ('0' + (raw[i] & 255).toString(16)).slice(-2);
+  }
+  return 'sso_' + hex.slice(0, 40);
+}
+
+function verifyGoogleIdToken_(token) {
+  const clientId = String(GOOGLE_CLIENT_ID || '').trim();
+  if (!clientId) return null;
+  const cache = CacheService.getScriptCache();
+  const key = tokenCacheKey_(token);
+  const cached = cache.get(key);
+  if (cached) {
+    try { return JSON.parse(cached); } catch (err) {}
+  }
+  const resp = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(token), {
+    muteHttpExceptions: true,
+    followRedirects: true
+  });
+  if (resp.getResponseCode() !== 200) return null;
+  var info = {};
+  try { info = JSON.parse(resp.getContentText() || '{}'); } catch (err) { return null; }
+  if (String(info.aud || '') !== clientId) return null;
+  const iss = String(info.iss || '');
+  if (iss !== 'https://accounts.google.com' && iss !== 'accounts.google.com') return null;
+  const verified = info.email_verified === true || String(info.email_verified) === 'true';
+  if (!verified) return null;
+  const email = String(info.email || '').toLowerCase();
+  const domain = String(info.hd || email.split('@')[1] || '').toLowerCase();
+  var allowed = false;
+  for (var i = 0; i < ALLOWED_EMAIL_DOMAINS.length; i++) {
+    if (domain === String(ALLOWED_EMAIL_DOMAINS[i] || '').toLowerCase()) allowed = true;
+  }
+  if (!email || !allowed) return null;
+  const user = { email: email, name: String(info.name || email) };
+  cache.put(key, JSON.stringify(user), 3000);
+  return user;
 }
 
 function classify_(name) {

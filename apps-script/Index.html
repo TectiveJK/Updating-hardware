@@ -97,6 +97,13 @@
       padding: 24px 20px 40px; max-width: 420px; width: 100%; margin: 0 auto;
     }
     .gate h1 { font-size: 28px; margin: 0 0 8px; }
+    .gate p { color: var(--muted); margin: 0 0 12px; }
+    .google-signin { margin: 18px 0; min-height: 44px; display: flex; justify-content: center; }
+    .user-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; margin: 0 0 8px;
+    }
+    .user-row .sub { margin: 0; }
     .btn {
       min-height: var(--tap);
       border: 0; border-radius: 12px;
@@ -273,6 +280,7 @@
     const STORE_KEY = 'hw_items';
     const SHARE = window.TectiveHardwareShare;
     const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3KiLyly5nRN7-y9iyJvL-z6xLpJKtNH02faJ4NeH1j0BvYUhlbvUVOXqckLtIIGqcuw/exec';
+    const AUTH_KEY = 'hw_sso';
     const state = {
       name: localStorage.getItem('hw_name') || '',
       items: [],
@@ -284,7 +292,8 @@
       loading: false,
       toast: '',
       shared: false,
-      editingName: false
+      editingName: false,
+      user: null
     };
 
     function $(tag, attrs, kids) {
@@ -312,6 +321,189 @@
 
     function isShared() {
       return inAppsScript() || !!scriptUrl();
+    }
+
+    function googleClientId() {
+      return String((window.HARDWARE_CONFIG && window.HARDWARE_CONFIG.googleClientId) || '').trim();
+    }
+
+    function allowedEmailDomains() {
+      const fromConfig = window.HARDWARE_CONFIG && window.HARDWARE_CONFIG.allowedEmailDomains;
+      if (Array.isArray(fromConfig) && fromConfig.length) {
+        return fromConfig.map((d) => String(d || '').toLowerCase()).filter(Boolean);
+      }
+      return ['tective.nl'];
+    }
+
+    function ssoEnabled() {
+      return !!googleClientId();
+    }
+
+    function emailDomain(email) {
+      const parts = String(email || '').toLowerCase().split('@');
+      return parts.length === 2 ? parts[1] : '';
+    }
+
+    function isAllowedEmail(email, domains) {
+      const allowed = (domains && domains.length) ? domains : allowedEmailDomains();
+      const domain = emailDomain(email);
+      return !!domain && allowed.indexOf(domain) !== -1;
+    }
+
+    function decodeJwtPayload(token) {
+      try {
+        const part = String(token || '').split('.')[1];
+        if (!part) return null;
+        const padded = part.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((part.length + 3) % 4);
+        return JSON.parse(decodeURIComponent(atob(padded).split('').map((c) => {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join('')));
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function sessionFromIdToken(token) {
+      const payload = decodeJwtPayload(token);
+      if (!payload || !payload.email) return null;
+      return {
+        idToken: token,
+        email: String(payload.email || '').toLowerCase(),
+        name: payload.name || payload.given_name || '',
+        exp: Number(payload.exp || 0) * 1000
+      };
+    }
+
+    function readSession() {
+      try {
+        const raw = localStorage.getItem(AUTH_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.idToken) return null;
+        return parsed;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function saveSession(session) {
+      state.user = session;
+      try { localStorage.setItem(AUTH_KEY, JSON.stringify(session)); } catch (err) {}
+    }
+
+    function clearSession() {
+      state.user = null;
+      try { localStorage.removeItem(AUTH_KEY); } catch (err) {}
+    }
+
+    function hasValidSession() {
+      const session = state.user || readSession();
+      if (!session || !session.idToken) return false;
+      if (session.exp && Date.now() > session.exp - 60000) {
+        clearSession();
+        return false;
+      }
+      if (!isAllowedEmail(session.email)) {
+        clearSession();
+        return false;
+      }
+      state.user = session;
+      if (session.name && !state.name) {
+        state.name = session.name;
+        localStorage.setItem('hw_name', session.name);
+      }
+      return true;
+    }
+
+    function loadGis(onReady) {
+      if (window.google && google.accounts && google.accounts.id) {
+        onReady();
+        return;
+      }
+      const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+      if (existing) {
+        existing.addEventListener('load', onReady);
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.async = true;
+      s.onload = onReady;
+      s.onerror = function () {
+        state.error = 'Could not load Google sign-in.';
+        render();
+      };
+      document.head.appendChild(s);
+    }
+
+    function onGoogleCredential(response) {
+      const session = sessionFromIdToken(response && response.credential);
+      if (!session) {
+        state.error = 'Could not read the Google sign-in.';
+        render();
+        return;
+      }
+      if (!isAllowedEmail(session.email)) {
+        clearSession();
+        state.error = 'Use your Tective Google account (@' + allowedEmailDomains().join(', @') + ').';
+        render();
+        return;
+      }
+      saveSession(session);
+      state.name = session.name || session.email;
+      localStorage.setItem('hw_name', state.name);
+      state.error = '';
+      bootApp();
+    }
+
+    function mountGoogleButton() {
+      loadGis(function () {
+        const el = document.getElementById('google-signin');
+        if (!el || !window.google || !google.accounts || !google.accounts.id) return;
+        google.accounts.id.initialize({
+          client_id: googleClientId(),
+          callback: onGoogleCredential,
+          auto_select: true,
+          cancel_on_tap_outside: false,
+          itp_support: true,
+          use_fedcm_for_prompt: true,
+          hd: allowedEmailDomains()[0]
+        });
+        google.accounts.id.renderButton(el, {
+          type: 'standard',
+          theme: 'filled_black',
+          size: 'large',
+          text: 'signin_with',
+          shape: 'pill',
+          width: 320
+        });
+        try { google.accounts.id.prompt(); } catch (err) {}
+      });
+    }
+
+    function signOut() {
+      clearSession();
+      state.items = [];
+      state.selected = null;
+      state.error = '';
+      try {
+        if (window.google && google.accounts && google.accounts.id) {
+          google.accounts.id.disableAutoSelect();
+        }
+      } catch (err) {}
+      render();
+    }
+
+    function renderGate() {
+      return $('div', { class: 'screen' }, [
+        $('div', { class: 'gate' }, [
+          $('h1', { text: 'Hardware' }),
+          $('p', { text: 'Sign in with your Tective Google account to open the company list.' }),
+          $('div', { id: 'google-signin', class: 'google-signin' }),
+          $('p', { class: 'err', text: state.error }),
+          $('p', { text: 'Only @' + allowedEmailDomains().join(', @') + ' accounts can sign in.' })
+        ])
+      ]);
     }
 
     function loadStore() {
@@ -493,15 +685,23 @@
     }
 
     function callApi(action, params) {
+      params = params || {};
+      if (state.user && state.user.idToken) params.idToken = state.user.idToken;
       if (scriptUrl()) {
         return jsonp(action, params, false).catch(function (err) {
           return jsonp(action, params, true).catch(function () { throw err; });
+        }).then(function (res) {
+          if (res && res.ok === false && /sign in/i.test(String(res.error || ''))) {
+            clearSession();
+            render();
+          }
+          return res;
         });
       }
       if (inAppsScript()) {
         return new Promise((resolve, reject) => {
           const run = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
-          if (action === 'list') run.listItems();
+          if (action === 'list') run.listItems(params);
           else if (action === 'add') run.addItem(params);
           else if (action === 'delete') run.deleteItem(params);
           else run.updateItem(params);
@@ -531,6 +731,10 @@
     }
 
     async function loadItems(openName, silent) {
+      if (ssoEnabled() && !hasValidSession()) {
+        if (!silent) render();
+        return;
+      }
       if (state.selected && silent) return;
       if (!silent) {
         state.loading = true;
@@ -580,7 +784,7 @@
         isNew: true,
         name: '',
         location: '',
-        person: state.name || '',
+        person: state.name || (state.user && (state.user.name || state.user.email)) || '',
         note: '',
         gimbal: '',
         type: 'other'
@@ -727,7 +931,15 @@
       return $('div', { class: 'screen' }, [
         $('header', { class: 'app' }, [
           $('h1', { text: 'Hardware' }),
-          $('div', { class: 'sub', text: state.loading ? 'Loading…' : items.length + ' items' }),
+          $('div', { class: 'user-row' }, [
+            $('div', { class: 'sub', text: state.loading ? 'Loading…' : items.length + ' items' }),
+            state.user ? $('button', {
+              class: 'btn secondary small',
+              type: 'button',
+              on: { click: signOut }
+            }, [$('span', { text: 'Sign out' })]) : null
+          ]),
+          state.user ? $('div', { class: 'sub', text: state.user.name || state.user.email }) : null,
           $('div', { class: 'field' }, [search])
         ]),
         state.error ? $('div', { class: 'banner' }, [
@@ -918,31 +1130,52 @@
     function render() {
       const root = document.getElementById('app');
       root.replaceChildren();
+      if (ssoEnabled() && !hasValidSession()) {
+        root.appendChild(renderGate());
+        mountGoogleButton();
+        if (state.toast) root.appendChild($('div', { class: 'toast', text: state.toast }));
+        return;
+      }
       root.appendChild(renderList());
       if (state.selected) root.appendChild(renderEditor());
       if (state.toast) root.appendChild($('div', { class: 'toast', text: state.toast }));
     }
 
-    const bootShared = SHARE && SHARE.read ? SHARE.read() : null;
-    if (bootShared && bootShared.items && bootShared.items.length) {
-      state.items = visibleItems(bootShared.items);
-      state.shared = true;
-      render();
-    }
-    loadItems();
-    setInterval(function () {
-      if (document.visibilityState === 'visible') loadItems(null, true);
-    }, 8000);
-    document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible') loadItems(null, true);
-    });
-    if (SHARE && SHARE.listen) {
-      SHARE.listen(function (items) {
-        state.items = visibleItems(items);
+    var shareListening = false;
+    function bootApp() {
+      const bootShared = SHARE && SHARE.read ? SHARE.read() : null;
+      if (bootShared && bootShared.items && bootShared.items.length) {
+        state.items = visibleItems(bootShared.items);
         state.shared = true;
         render();
-      });
+      }
+      loadItems();
+      if (SHARE && SHARE.listen && !shareListening) {
+        shareListening = true;
+        SHARE.listen(function (items) {
+          if (ssoEnabled() && !hasValidSession()) return;
+          state.items = visibleItems(items);
+          state.shared = true;
+          render();
+        });
+      }
     }
+
+    if (ssoEnabled() && !hasValidSession()) {
+      render();
+    } else {
+      bootApp();
+    }
+    setInterval(function () {
+      if (document.visibilityState !== 'visible') return;
+      if (ssoEnabled() && !hasValidSession()) { render(); return; }
+      loadItems(null, true);
+    }, 8000);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState !== 'visible') return;
+      if (ssoEnabled() && !hasValidSession()) { render(); return; }
+      loadItems(null, true);
+    });
   </script>
 </body>
 </html>
