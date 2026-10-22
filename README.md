@@ -35,34 +35,19 @@ Both live sites talk to the same Google Sheet. On GitHub Pages they also share a
 
 ## Sign in (SSO)
 
-The live page uses Google Single Sign-On. Only **@tective.nl** Google accounts can open the list.
+SSO is **on**. The live page asks for Google sign-in. Only **@tective.nl** Google accounts can open the list.
 
 1. Open https://tectivejk.github.io/Updating-hardware/
-2. Tap **Sign in with Google**
+2. Tap **Sign in with Google** (the button may say **Inloggen met Google**)
 3. Choose your Tective account
 
 Your name is filled in on **Who has it**. Tap **Sign out** in the header to switch accounts.
 
 Do **not** open the spreadsheet. Do **not** share the Apps Script `/exec` link. Share **only** the GitHub Pages link above. The spreadsheet stays private.
 
-### Turn SSO on (once)
-
-The sign-in button stays hidden until a Google Web client ID is in [`config.js`](config.js) **and** [`apps-script/Code.gs`](apps-script/Code.gs).
-
-1. Open [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-2. Create (or pick) a project
-3. **APIs & Services → Credentials → Create credentials → OAuth client ID**
-4. Application type: **Web application**
-5. Authorized JavaScript origins:
-   - `https://tectivejk.github.io`
-   - `http://127.0.0.1:43141`
-6. Create, copy the **Client ID**
-7. Put that value in `googleClientId` in [`config.js`](config.js) and in `GOOGLE_CLIENT_ID` in [`apps-script/Code.gs`](apps-script/Code.gs)
-8. Push to GitHub, then redeploy Apps Script (**Execute as: Me**, **Who has access: Anyone**)
-
-Keep **Who has access: Anyone**. That is not the login screen. The Tective Google sign-in is the button on this page. If you set the script to “Anyone with a Google account”, phones hit a Google wall and the list stays empty.
-
 The [Fleet](https://tectivejk.github.io/Field-Test-Operations-Dashboard./) page still uses the same company list without this sign-in. To also require a Tective token on every sheet request, set `REQUIRE_SSO` to `true` in `Code.gs` after Fleet can send one.
+
+Keep Apps Script **Who has access: Anyone**. That is not the login screen. The Tective Google sign-in is the button on this page. If you set the script to “Anyone with a Google account”, phones hit a Google wall and the list stays empty.
 
 ## If someone sees no hardware
 
@@ -104,7 +89,7 @@ Then **Deploy**.
 
 If a phone still says **Unknown action**, it is on an old cached page:
 
-1. Open https://tectivejk.github.io/Updating-hardware/?v=gcs
+1. Open https://tectivejk.github.io/Updating-hardware/?v=sso
 2. Pull down to refresh, or close the tab and open that link again.
 3. If the app is on the home screen, delete the icon and add the live link again.
 
@@ -167,6 +152,7 @@ The live phone app already deletes items from the company list. To also erase th
    - Execute as: **Me**
    - Who has access: **Anyone**
 7. Put the `/exec` URL into [`config.js`](config.js) **and** the `DEFAULT_SCRIPT_URL` in [`index.html`](index.html) / [`apps-script/Index.html`](apps-script/Index.html), then push to GitHub.
+8. Keep the same Google Web client ID in `googleClientId` in [`config.js`](config.js) and `GOOGLE_CLIENT_ID` in [`apps-script/Code.gs`](apps-script/Code.gs). Authorized JavaScript origins must include `https://tectivejk.github.io` and `http://127.0.0.1:43141`.
 
 ## What is in this repo
 
