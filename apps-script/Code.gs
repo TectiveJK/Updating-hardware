@@ -12,7 +12,7 @@ const SPREADSHEET_ID = '1wd0kwOdgz8fdb54RBnoJgTuMjonhJb5pj0L0fBfC2vg';
 const STATUS_SHEET = 'Product Status';
 const LOG_SHEET = 'Location Log';
 const DATA_START_ROW = 5;
-const GOOGLE_CLIENT_ID = ''; // same Web client ID as config.js googleClientId
+const GOOGLE_CLIENT_ID = '954939041520-hg0rcqg6nvadsp9f17b6uptigdobk4c1.apps.googleusercontent.com'; // same Web client ID as config.js googleClientId
 const ALLOWED_EMAIL_DOMAINS = ['tective.nl'];
 // true = every list/add/update must include a Tective Google sign-in token.
 // Leave false so Fleet can still read/write the same list.
