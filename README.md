@@ -100,6 +100,7 @@ Locations on the buttons:
 - In hive
 - testing
 - Out of service
+- Demo
 - Other (type any place)
 
 ### Add to a phone home screen
