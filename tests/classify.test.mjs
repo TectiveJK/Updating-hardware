@@ -34,12 +34,15 @@ for (const file of files) {
   assert.equal(classify("gimbal for refly-sf-010"), "gimbal");
   assert.equal(classify("vehicle-001"), "vehicle");
   assert.equal(classify("Vehicle 12"), "vehicle");
+  assert.equal(classify("(Voertuig)-Voertuigen-Subaru 79-PXF-2"), "vehicle");
+  assert.equal(classify("Voertuigen-Bus V-328-TL (Low Van)"), "vehicle");
+  assert.equal(classify("Voertuigen-Bus V-960-VH (High Van)"), "vehicle");
 }
 
 const apps = readFileSync(new URL("../apps-script/Code.gs", import.meta.url), "utf8");
 assert.match(apps, /if \(n\.indexOf\('gcs'\) !== -1\) return 'gcs';/);
 assert.match(apps, /if \(n\.indexOf\('gimbal'\) !== -1\) return 'gimbal';/);
-assert.match(apps, /if \(n\.indexOf\('vehicle'\) !== -1\) return 'vehicle';/);
+assert.match(apps, /if \(n\.indexOf\('vehicle'\) !== -1 \|\| n\.indexOf\('voertuig'\) !== -1\) return 'vehicle';/);
 assert.match(apps, /'Parking'/);
 
 console.log("classify tests passed");

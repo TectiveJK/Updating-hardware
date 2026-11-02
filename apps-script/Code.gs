@@ -439,7 +439,7 @@ function classify_(name) {
   if (n.indexOf('battery') !== -1) return 'battery';
   if (n.indexOf('rotator') !== -1) return 'rotator';
   if (n.indexOf('gimbal') !== -1) return 'gimbal';
-  if (n.indexOf('vehicle') !== -1) return 'vehicle';
+  if (n.indexOf('vehicle') !== -1 || n.indexOf('voertuig') !== -1) return 'vehicle';
   if (n.indexOf('hive') !== -1 || n.indexOf('skyfence') !== -1) return 'hive';
   if (n.indexOf('refly') !== -1 || n.indexOf('drone') !== -1 || n.indexOf('ibb') !== -1) return 'drone';
   return 'other';

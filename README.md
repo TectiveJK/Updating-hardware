@@ -16,16 +16,16 @@ The chips at the top filter the list:
 | --- | --- |
 | **All** | Every item |
 | **Drones** | ReFly and IBB airframes |
-| **Vehicles** | Ground vehicles. Locations are **In factory downstairs**, **Parking**, **Demo**, **Testing**, and **Out of service** |
+| **Vehicles** | Ground vehicles, including **(Voertuig)-Voertuigen-Subaru 79-PXF-2**, **Voertuigen-Bus V-328-TL (Low Van)**, and **Voertuigen-Bus V-960-VH (High Van)**. Locations are **In factory downstairs**, **Parking**, **Demo**, **Testing**, and **Out of service** |
 | **Gimbal** | Camera gimbals. The list shows **Gimbal-028 attached to refly-sf-031** when a drone is chosen |
 | **Batteries** | Battery packs |
 | **Hive** | SkyHive / hive |
 | **Rotator** | Ground rotator |
 | **GCS** | Ground control stations: **GCS-001**, **GCS-004**, **GCS-005** |
 
-A name that contains `gcs` is filed under **GCS**. A name that contains `gimbal` is filed under **Gimbal**. A name that contains `vehicle` is filed under **Vehicles**. New units added later show up in those chips automatically.
+A name that contains `gcs` is filed under **GCS**. A name that contains `gimbal` is filed under **Gimbal**. A name that contains `vehicle` or `voertuig` (including **Voertuigen**) is filed under **Vehicles**. New units added later show up in those chips automatically.
 
-**Vehicles** do not use hive, office, van, or third-party buttons. Name the item with `vehicle` in it (for example `vehicle-001`) so it gets the vehicle locations.
+**Vehicles** do not use hive, office, In van, or third-party location buttons. Name the item with `vehicle` or `voertuig` in it (for example `vehicle-001` or `Voertuigen-Bus V-328-TL (Low Van)`) so it gets the vehicle locations.
 
 ## Fleet
 
@@ -83,7 +83,7 @@ Then **Deploy**.
 
 1. Open https://tectivejk.github.io/Updating-hardware/ and sign in with Google.
 2. Search for an item, tap a category, **or** tap **Add hardware**.
-3. For a new item, type a name (for example `refly-sf-034`, `battery 121`, `gimbal-sf-034`, `vehicle-001`, or `GCS-006`).
+3. For a new item, type a name (for example `refly-sf-034`, `battery 121`, `gimbal-sf-034`, `Voertuigen-Bus V-328-TL (Low Van)`, or `GCS-006`).
 4. Choose a location, type your name, **Save location**. For a gimbal, also pick the drone it belongs to. The list then shows the gimbal **attached to** that drone. For a vehicle, the location buttons are **In factory downstairs**, **Parking**, **Demo**, **Testing**, and **Out of service**.
 5. To rename: open the item → tap **Edit name** next to the title → type the new name → **Save location**.
 6. To remove it: open the item → tap **Delete** under **Save location** → confirm.
@@ -92,7 +92,7 @@ Then **Deploy**.
 
 If a phone still says **Unknown action**, it is on an old cached page:
 
-1. Open https://tectivejk.github.io/Updating-hardware/?v=vehicles
+1. Open https://tectivejk.github.io/Updating-hardware/?v=voertuigen
 2. Pull down to refresh, or close the tab and open that link again.
 3. If the app is on the home screen, delete the icon and add the live link again.
 
