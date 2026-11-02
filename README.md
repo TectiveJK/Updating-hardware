@@ -124,6 +124,8 @@ The phone page calls an Apps Script web app. That script **runs as you** and rea
 
 For a gimbal, the list title is **name attached to drone**. Column D is the drone it belongs to. The same drone is also written at the top of the note so it still shows after a refresh. Deploy the latest [`apps-script/Code.gs`](apps-script/Code.gs) so column D is saved too.
 
+Column C has a Google Sheets dropdown. It must include **Demo**, or the phone app cannot save that location. The latest `Code.gs` adds **Demo** to that dropdown on the next save. Redeploy Apps Script after you pull this change, then save **Demo** again.
+
 Data starts at row 5. New hardware is added as a new row. Rename changes column B. Delete hides the item (location `Deleted`) or, after you deploy the latest `Code.gs`, removes the row. Rows marked `Deleted` never appear in the app. Each save also appends a line to a hidden **Location Log** tab.
 
 The live `/exec` URL is in [`config.js`](config.js) and also baked into [`index.html`](index.html) so phones still work if `config.js` fails to load. Requests to Google do not send other people’s Google cookies, so they are not blocked for lacking spreadsheet access.

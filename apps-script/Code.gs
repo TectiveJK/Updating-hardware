@@ -24,6 +24,17 @@ const COL = {
   person: 5,    // E
   note: 6       // F
 };
+const SHEET_LOCATIONS = [
+  'In factory downstairs',
+  'In office upstairs',
+  'In hive',
+  'testing',
+  'Demo',
+  'Out of service',
+  'third party',
+  'In van',
+  'Deleted'
+];
 
 function doGet(e) {
   e = e || { parameter: {} };
@@ -80,6 +91,7 @@ function updateItem(payload) {
     const oldPerson = String(sheet.getRange(row, COL.person).getDisplayValue() || '');
     const oldNote = String(sheet.getRange(row, COL.note).getDisplayValue() || '');
 
+    ensureLocationAllowed_(sheet, location);
     sheet.getRange(row, COL.location).setValue(location);
     sheet.getRange(row, COL.person).setValue(person);
     sheet.getRange(row, COL.note).setValue(note);
@@ -167,6 +179,7 @@ function addItem(payload) {
     const sheet = statusSheet();
     if (findRow(sheet, name)) return { ok: false, error: name + ' is already on the list.' };
 
+    ensureLocationAllowed_(sheet, location);
     sheet.appendRow(['', name, location, gimbal, person, note]);
 
     appendLog_({
@@ -320,6 +333,46 @@ function appendLog_(entry) {
     entry.oldNote,
     entry.note
   ]);
+}
+
+function addUniqueLocation_(allowed, seen, value) {
+  const v = String(value || '').trim();
+  if (!v) return;
+  const key = v.toLowerCase();
+  if (seen[key]) return;
+  seen[key] = true;
+  allowed.push(v);
+}
+
+function ensureLocationAllowed_(sheet, location) {
+  const last = Math.max(sheet.getLastRow() + 25, DATA_START_ROW + 100);
+  const end = Math.min(last, sheet.getMaxRows());
+  const height = end - DATA_START_ROW + 1;
+  const range = sheet.getRange(DATA_START_ROW, COL.location, height, 1);
+  const rules = range.getDataValidations();
+  const allowed = [];
+  const seen = {};
+  for (var r = 0; r < rules.length; r++) {
+    const rule = rules[r][0];
+    if (!rule) continue;
+    const type = rule.getCriteriaType();
+    const values = rule.getCriteriaValues() || [];
+    if (type === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST && values[0]) {
+      const list = values[0];
+      for (var i = 0; i < list.length; i++) addUniqueLocation_(allowed, seen, list[i]);
+    } else if (type === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE && values[0] && values[0].getDisplayValues) {
+      const cells = values[0].getDisplayValues();
+      for (var y = 0; y < cells.length; y++) addUniqueLocation_(allowed, seen, cells[y][0]);
+    }
+  }
+  for (var j = 0; j < SHEET_LOCATIONS.length; j++) addUniqueLocation_(allowed, seen, SHEET_LOCATIONS[j]);
+  addUniqueLocation_(allowed, seen, location);
+  const next = SpreadsheetApp.newDataValidation()
+    .requireValueInList(allowed, true)
+    .setAllowInvalid(false)
+    .setHelpText('Pick a location from the list.')
+    .build();
+  range.setDataValidation(next);
 }
 
 function requireUser_(payload) {

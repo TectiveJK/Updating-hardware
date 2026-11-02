@@ -26,6 +26,8 @@ assert.match(apps, /function requireUser_/);
 assert.match(apps, /function verifyGoogleIdToken_/);
 assert.match(apps, /ALLOWED_EMAIL_DOMAINS = \['tective.nl'\]/);
 assert.match(apps, /idToken: p.idToken/);
+assert.match(apps, /function ensureLocationAllowed_/);
+assert.match(apps, /'Demo'/);
 
 const config = readFileSync(new URL("../config.js", import.meta.url), "utf8");
 assert.match(config, /googleClientId/);
