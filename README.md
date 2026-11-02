@@ -25,7 +25,17 @@ The chips at the top filter the list:
 
 A name that contains `gcs` is filed under **GCS**. A name that contains `gimbal` is filed under **Gimbal**. A name that contains `vehicle` or `voertuig` (including **Voertuigen**) is filed under **Vehicles**. New units added later show up in those chips automatically.
 
-**Vehicles** do not use hive, office, In van, or third-party location buttons. Name the item with `vehicle` or `voertuig` in it (for example `vehicle-001` or `Voertuigen-Bus V-328-TL (Low Van)`) so it gets the vehicle locations.
+### Vehicles on the list
+
+Tap **Vehicles** to see:
+
+- **(Voertuig)-Voertuigen-Subaru 79-PXF-2**
+- **Voertuigen-Bus V-328-TL (Low Van)**
+- **Voertuigen-Bus V-960-VH (High Van)**
+
+Those names already live in the company sheet. The phone page files them under **Vehicles** because they contain `Voertuig` / `Voertuigen`. You do **not** need to redeploy Apps Script just to see them in this category.
+
+**Vehicles** do not use hive, office, In van, or third-party location buttons. Name a new item with `vehicle` or `voertuig` in it so it gets the vehicle locations.
 
 ## Fleet
 
@@ -72,7 +82,7 @@ Then **Deploy**.
 
 - Sign in with a Tective Google account (**@tective.nl**), and sign out from the header
 - Filter by **All**, **Drones**, **Vehicles**, **Gimbal**, **Batteries**, **Hive**, **Rotator**, or **GCS**
-- Search drones, vehicles, gimbals, batteries, hive, rotators, and GCS
+- Search drones, vehicles (Subaru and both vans), gimbals, batteries, hive, rotators, and GCS
 - Update location, who has it, and a short note
 - For a gimbal, choose which drone it belongs to. The card then reads **Gimbal-028 attached to refly-sf-031**
 - Tap **Edit name** (next to the item name) to rename hardware
@@ -187,7 +197,7 @@ The live phone app already deletes items from the company list. To also erase th
 | `manifest.webmanifest` | Add to home screen |
 | `icon.svg` | App icon |
 | `.github/workflows/pages.yml` | Publishes the live GitHub Pages site |
-| `tests/classify.test.mjs` | GCS, gimbal, Vehicles, and category name matching |
+| `tests/classify.test.mjs` | GCS, gimbal, Vehicles, Voertuig names, and category matching |
 | `tests/sso.test.mjs` | Tective Google sign-in domain checks |
 | `tests/shared-hardware.test.mjs` | Same-origin cache helpers |
 
