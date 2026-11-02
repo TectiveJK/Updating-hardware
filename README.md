@@ -25,6 +25,8 @@ The chips at the top filter the list:
 
 A name that contains `gcs` is filed under **GCS**. A name that contains `gimbal` is filed under **Gimbal**. A name that contains `vehicle` is filed under **Vehicles**. New units added later show up in those chips automatically.
 
+**Vehicles** do not use hive, office, van, or third-party buttons. Name the item with `vehicle` in it (for example `vehicle-001`) so it gets the vehicle locations.
+
 ## Fleet
 
 The [Field Test Operations Dashboard](https://tectivejk.github.io/Field-Test-Operations-Dashboard./) **Fleet** page uses this same company list.
@@ -134,7 +136,13 @@ The phone page calls an Apps Script web app. That script **runs as you** and rea
 
 For a gimbal, the list title is **name attached to drone**. Column D is the drone it belongs to. The same drone is also written at the top of the note so it still shows after a refresh. Deploy the latest [`apps-script/Code.gs`](apps-script/Code.gs) so column D is saved too.
 
-Column C has a Google Sheets dropdown. It must include values such as **Demo** and **Parking**, or the phone app cannot save those locations. The latest `Code.gs` adds those values to that dropdown on the next save. Redeploy Apps Script after you pull this change.
+Column C has a Google Sheets dropdown. It must include **Demo**, **Parking**, and **Testing**, or the phone app cannot save those locations (the same error as when **Demo** was missing). The latest `Code.gs` adds those values to the dropdown on the next save. After you pull this change:
+
+1. Open the hardware spreadsheet → **Extensions → Apps Script**.
+2. Replace **Code.gs** with [`apps-script/Code.gs`](apps-script/Code.gs).
+3. **Deploy → Manage deployments → Edit** the existing web app → **New version** → **Deploy**.
+
+Keep **Execute as: Me** and **Who has access: Anyone**.
 
 Data starts at row 5. New hardware is added as a new row. Rename changes column B. Delete hides the item (location `Deleted`) or, after you deploy the latest `Code.gs`, removes the row. Rows marked `Deleted` never appear in the app. Each save also appends a line to a hidden **Location Log** tab.
 
@@ -179,7 +187,7 @@ The live phone app already deletes items from the company list. To also erase th
 | `manifest.webmanifest` | Add to home screen |
 | `icon.svg` | App icon |
 | `.github/workflows/pages.yml` | Publishes the live GitHub Pages site |
-| `tests/classify.test.mjs` | GCS, gimbal, and category name matching |
+| `tests/classify.test.mjs` | GCS, gimbal, Vehicles, and category name matching |
 | `tests/sso.test.mjs` | Tective Google sign-in domain checks |
 | `tests/shared-hardware.test.mjs` | Same-origin cache helpers |
 
