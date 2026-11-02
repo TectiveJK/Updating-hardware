@@ -11,6 +11,7 @@ for (const file of files) {
   const html = readFileSync(file, "utf8");
   assert.match(html, /\{ id: 'gcs', label: 'GCS' \}/, `${file} should have a GCS chip`);
   assert.match(html, /\{ id: 'gimbal', label: 'Gimbal' \}/, `${file} should have a Gimbal chip`);
+  assert.match(html, /\{ id: 'vehicle', label: 'Vehicles' \}/, `${file} should have a Vehicles chip`);
   assert.match(html, /if \(n\.indexOf\('gcs'\) !== -1\) return 'gcs';/, `${file} should classify GCS names`);
   assert.match(html, /if \(n\.indexOf\('gimbal'\) !== -1\) return 'gimbal';/, `${file} should classify gimbal names`);
   assert.match(html, /name: 'GCS-001'/, `${file} should include GCS-001`);
@@ -19,6 +20,7 @@ for (const file of files) {
   assert.match(html, /Belongs to drone/, `${file} should let gimbals pick a drone`);
   assert.match(html, /attached to /, `${file} should show which drone a gimbal is attached to`);
   assert.match(html, /'Demo'/, `${file} should include a Demo location button`);
+  assert.match(html, /'Parking'/, `${file} should include a Parking location for vehicles`);
 
   const match = html.match(/function classify\(name\) \{[\s\S]*?return 'other';\n    \}/);
   assert.ok(match, `${file} should define classify`);
@@ -30,10 +32,14 @@ for (const file of files) {
   assert.equal(classify("refly-sf-033"), "drone");
   assert.equal(classify("gimbal-sf-007"), "gimbal");
   assert.equal(classify("gimbal for refly-sf-010"), "gimbal");
+  assert.equal(classify("vehicle-001"), "vehicle");
+  assert.equal(classify("Vehicle 12"), "vehicle");
 }
 
 const apps = readFileSync(new URL("../apps-script/Code.gs", import.meta.url), "utf8");
 assert.match(apps, /if \(n\.indexOf\('gcs'\) !== -1\) return 'gcs';/);
 assert.match(apps, /if \(n\.indexOf\('gimbal'\) !== -1\) return 'gimbal';/);
+assert.match(apps, /if \(n\.indexOf\('vehicle'\) !== -1\) return 'vehicle';/);
+assert.match(apps, /'Parking'/);
 
 console.log("classify tests passed");

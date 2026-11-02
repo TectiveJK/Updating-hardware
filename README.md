@@ -16,13 +16,14 @@ The chips at the top filter the list:
 | --- | --- |
 | **All** | Every item |
 | **Drones** | ReFly and IBB airframes |
+| **Vehicles** | Ground vehicles. Locations are **In factory downstairs**, **Parking**, **Demo**, **Testing**, and **Out of service** |
 | **Gimbal** | Camera gimbals. The list shows **Gimbal-028 attached to refly-sf-031** when a drone is chosen |
 | **Batteries** | Battery packs |
 | **Hive** | SkyHive / hive |
 | **Rotator** | Ground rotator |
 | **GCS** | Ground control stations: **GCS-001**, **GCS-004**, **GCS-005** |
 
-A name that contains `gcs` is filed under **GCS**. A name that contains `gimbal` is filed under **Gimbal**. New units added later show up in those chips automatically.
+A name that contains `gcs` is filed under **GCS**. A name that contains `gimbal` is filed under **Gimbal**. A name that contains `vehicle` is filed under **Vehicles**. New units added later show up in those chips automatically.
 
 ## Fleet
 
@@ -68,8 +69,8 @@ Then **Deploy**.
 ## What people can do
 
 - Sign in with a Tective Google account (**@tective.nl**), and sign out from the header
-- Filter by **All**, **Drones**, **Gimbal**, **Batteries**, **Hive**, **Rotator**, or **GCS**
-- Search drones, gimbals, batteries, hive, rotators, and GCS
+- Filter by **All**, **Drones**, **Vehicles**, **Gimbal**, **Batteries**, **Hive**, **Rotator**, or **GCS**
+- Search drones, vehicles, gimbals, batteries, hive, rotators, and GCS
 - Update location, who has it, and a short note
 - For a gimbal, choose which drone it belongs to. The card then reads **Gimbal-028 attached to refly-sf-031**
 - Tap **Edit name** (next to the item name) to rename hardware
@@ -80,8 +81,8 @@ Then **Deploy**.
 
 1. Open https://tectivejk.github.io/Updating-hardware/ and sign in with Google.
 2. Search for an item, tap a category, **or** tap **Add hardware**.
-3. For a new item, type a name (for example `refly-sf-034`, `battery 121`, `gimbal-sf-034`, or `GCS-006`).
-4. Choose a location, type your name, **Save location**. For a gimbal, also pick the drone it belongs to. The list then shows the gimbal **attached to** that drone.
+3. For a new item, type a name (for example `refly-sf-034`, `battery 121`, `gimbal-sf-034`, `vehicle-001`, or `GCS-006`).
+4. Choose a location, type your name, **Save location**. For a gimbal, also pick the drone it belongs to. The list then shows the gimbal **attached to** that drone. For a vehicle, the location buttons are **In factory downstairs**, **Parking**, **Demo**, **Testing**, and **Out of service**.
 5. To rename: open the item → tap **Edit name** next to the title → type the new name → **Save location**.
 6. To remove it: open the item → tap **Delete** under **Save location** → confirm.
 
@@ -89,17 +90,26 @@ Then **Deploy**.
 
 If a phone still says **Unknown action**, it is on an old cached page:
 
-1. Open https://tectivejk.github.io/Updating-hardware/?v=demo
+1. Open https://tectivejk.github.io/Updating-hardware/?v=vehicles
 2. Pull down to refresh, or close the tab and open that link again.
 3. If the app is on the home screen, delete the icon and add the live link again.
 
-Locations on the buttons:
+Locations on the buttons (most hardware):
 
 - In factory downstairs
 - In office upstairs
 - In hive
 - testing
 - Demo
+- Out of service
+- Other (type any place)
+
+Locations on the buttons for **Vehicles**:
+
+- In factory downstairs
+- Parking
+- Demo
+- Testing
 - Out of service
 - Other (type any place)
 
@@ -124,7 +134,7 @@ The phone page calls an Apps Script web app. That script **runs as you** and rea
 
 For a gimbal, the list title is **name attached to drone**. Column D is the drone it belongs to. The same drone is also written at the top of the note so it still shows after a refresh. Deploy the latest [`apps-script/Code.gs`](apps-script/Code.gs) so column D is saved too.
 
-Column C has a Google Sheets dropdown. It must include **Demo**, or the phone app cannot save that location. The latest `Code.gs` adds **Demo** to that dropdown on the next save. Redeploy Apps Script after you pull this change, then save **Demo** again.
+Column C has a Google Sheets dropdown. It must include values such as **Demo** and **Parking**, or the phone app cannot save those locations. The latest `Code.gs` adds those values to that dropdown on the next save. Redeploy Apps Script after you pull this change.
 
 Data starts at row 5. New hardware is added as a new row. Rename changes column B. Delete hides the item (location `Deleted`) or, after you deploy the latest `Code.gs`, removes the row. Rows marked `Deleted` never appear in the app. Each save also appends a line to a hidden **Location Log** tab.
 

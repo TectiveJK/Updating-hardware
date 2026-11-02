@@ -238,9 +238,17 @@
       'Demo',
       'Out of service'
     ];
+    const VEHICLE_LOCATIONS = [
+      'In factory downstairs',
+      'Parking',
+      'Demo',
+      'Testing',
+      'Out of service'
+    ];
     const FILTERS = [
       { id: 'all', label: 'All' },
       { id: 'drone', label: 'Drones' },
+      { id: 'vehicle', label: 'Vehicles' },
       { id: 'gimbal', label: 'Gimbal' },
       { id: 'battery', label: 'Batteries' },
       { id: 'hive', label: 'Hive' },
@@ -275,7 +283,8 @@
       { name: 'rotator 25', location: 'In factory downstairs', person: '', note: 'without dish and antenna cone', gimbal: '', type: 'rotator' },
       { name: 'GCS-001', location: 'In office upstairs', person: '', note: '', gimbal: '', type: 'gcs' },
       { name: 'GCS-004', location: 'In factory downstairs', person: '', note: '', gimbal: '', type: 'gcs' },
-      { name: 'GCS-005', location: 'In office upstairs', person: '', note: '', gimbal: '', type: 'gcs' }
+      { name: 'GCS-005', location: 'In office upstairs', person: '', note: '', gimbal: '', type: 'gcs' },
+      { name: 'vehicle-001', location: 'Parking', person: '', note: '', gimbal: '', type: 'vehicle' }
     ];
 
     const STORE_KEY = 'hw_items';
@@ -531,9 +540,14 @@
       if (n.indexOf('battery') !== -1) return 'battery';
       if (n.indexOf('rotator') !== -1) return 'rotator';
       if (n.indexOf('gimbal') !== -1) return 'gimbal';
+      if (n.indexOf('vehicle') !== -1) return 'vehicle';
       if (n.indexOf('hive') !== -1 || n.indexOf('skyfence') !== -1) return 'hive';
       if (n.indexOf('refly') !== -1 || n.indexOf('drone') !== -1 || n.indexOf('ibb') !== -1) return 'drone';
       return 'other';
+    }
+
+    function locationsFor(name) {
+      return classify(name) === 'vehicle' ? VEHICLE_LOCATIONS : LOCATIONS;
     }
 
     function isGimbalName(name) {
@@ -798,7 +812,7 @@
 
     function openEditor(item) {
       state.selected = Object.assign({ originalName: item.name }, item);
-      state.customLocation = LOCATIONS.indexOf(item.location) === -1 ? item.location : '';
+      state.customLocation = locationsFor(item.name).indexOf(item.location) === -1 ? item.location : '';
       if (!state.selected.person && state.name) state.selected.person = state.name;
       if (isGimbalName(item.name)) {
         const drone = attachedDrone(item);
@@ -828,7 +842,7 @@
       if (nameEl) item.name = nameEl.value;
       if (personEl) item.person = personEl.value;
       if (noteEl) item.note = noteEl.value;
-      if (otherEl && otherEl.value.trim() && LOCATIONS.indexOf(item.location) === -1) {
+      if (otherEl && otherEl.value.trim() && locationsFor(item.name).indexOf(item.location) === -1) {
         item.location = otherEl.value.trim();
       }
       if (isGimbalName(item.name)) {
@@ -1015,11 +1029,12 @@
       const gimbalItem = isGimbalName(item.name);
       const nameInput = $('input', {
         class: 'box',
-        placeholder: 'e.g. refly-sf-034, battery 121, or gimbal-sf-034',
+        placeholder: 'e.g. refly-sf-034, battery 121, gimbal-sf-034, or vehicle-001',
         value: item.name || '',
         autocapitalize: 'off'
       });
       nameInput.addEventListener('input', () => {
+        const prevType = item.type;
         item.name = nameInput.value;
         item.type = classify(item.name);
         const picker = document.querySelector('[data-field="belongs-to-drone-wrap"]');
@@ -1028,6 +1043,12 @@
           picker.style.display = show ? '' : 'none';
           if (show) picker.removeAttribute('hidden');
           else picker.setAttribute('hidden', '');
+        }
+        if (prevType !== item.type) {
+          const start = nameInput.selectionStart;
+          render();
+          const next = document.querySelector('input[placeholder^="e.g."]');
+          if (next) { next.focus(); next.setSelectionRange(start, start); }
         }
       });
       const person = $('input', { class: 'box', placeholder: 'Your name', value: item.person || '' });
@@ -1082,7 +1103,7 @@
             : null,
           $('div', { class: 'field' }, [
             $('label', { text: 'Location' }),
-            $('div', { class: 'locs' }, LOCATIONS.map((loc) =>
+            $('div', { class: 'locs' }, locationsFor(item.name).map((loc) =>
               $('button', {
                 class: 'loc-btn' + (item.location === loc ? ' on' : ''),
                 type: 'button',
