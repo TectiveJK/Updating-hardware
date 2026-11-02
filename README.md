@@ -89,7 +89,7 @@ Then **Deploy**.
 
 If a phone still says **Unknown action**, it is on an old cached page:
 
-1. Open https://tectivejk.github.io/Updating-hardware/?v=sso
+1. Open https://tectivejk.github.io/Updating-hardware/?v=demo
 2. Pull down to refresh, or close the tab and open that link again.
 3. If the app is on the home screen, delete the icon and add the live link again.
 
@@ -99,8 +99,8 @@ Locations on the buttons:
 - In office upstairs
 - In hive
 - testing
-- Out of service
 - Demo
+- Out of service
 - Other (type any place)
 
 ### Add to a phone home screen

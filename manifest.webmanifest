@@ -1,7 +1,7 @@
 {
   "name": "Tective Hardware",
   "short_name": "Hardware",
-  "start_url": "./",
+  "start_url": "./?v=demo",
   "display": "standalone",
   "background_color": "#0e1a24",
   "theme_color": "#0e1a24",
